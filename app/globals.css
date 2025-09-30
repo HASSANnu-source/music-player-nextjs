@@ -24,3 +24,34 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* styles.css */
+.slider::-webkit-slider-thumb {
+  border: none;
+  height: 0.9rem;
+  width: 0.9rem;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  background: #059669;
+}
+
+.slider::-moz-range-thumb {
+  border: none;
+  height: 0.9rem;
+  width: 0.9rem;
+  border-radius: 50%;
+  background: #10b981;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  background: #059669;
+}

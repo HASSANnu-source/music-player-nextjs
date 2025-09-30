@@ -294,14 +294,14 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
         ))}
       </div>
 
-      <div className="flex w-full gap-7">
+      <div className="flex flex-col items-center sm:items-start sm:flex-row w-full gap-7">
         <div className="w-2/3 space-y-5">
           {currentTrack ? (
             <div className="flex flex-col items-center space-y-2">
               <img
                 src={allMetadata[currentTrack]?.picture ?? "/default-cover.png"}
                 alt="cover"
-                className="w-24 h-24 rounded-lg shadow-md object-cover"
+                className="w-35 h-35 rounded-lg object-cover"
               />
               <p className="text-lg text-white font-semibold text-center">
                 {allMetadata[currentTrack]?.title ?? getFileName(currentTrack)}
@@ -323,7 +323,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
               max={duration || 0}
               value={progress}
               onChange={handleSeek}
-              className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+              className="slider w-full h-1.5 rounded-lg appearance-none cursor-pointer"
               style={{
                 background: `linear-gradient(to right, #10b981 0%, #10b981 ${pct}%, #374151 ${pct}%, #374151 100%)`,
               }}
@@ -371,7 +371,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
                 <img
                   src={allMetadata[track]?.picture ?? "/default-cover.png"}
                   alt="cover"
-                  className="w-10 h-10 rounded-sm object-cover"
+                  className="w-15 h-15 rounded-sm object-cover"
                 />
                 <div className="flex flex-col text-sm">
                   <span className="truncate max-w-[160px]">
@@ -386,7 +386,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
           </div>
 
           {isCustom && (
-            <div className="flex w-full gap-2">
+            <div className="flex w-full gap-2 px-1">
               <input
                 type="text"
                 placeholder="Enter MP3 URL"
