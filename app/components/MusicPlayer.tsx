@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Repeat } from "lucide-react";
 
 interface TrackMetadata {
   title: string;
@@ -40,6 +40,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [newTrack, setNewTrack] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLooped, setIsLooped] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [allMetadata, setAllMetadata] = useState<Record<string, TrackMetadata>>({});
@@ -50,18 +51,6 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
   const mounted = useRef(true);
 
   const isCustom = currentPlaylistName === "Custom";
-
-  const uint8ToBase64 = (u8: Uint8Array) => {
-    const CHUNK = 0x8000;
-    let index = 0;
-    let result = "";
-    while (index < u8.length) {
-      const slice = u8.subarray(index, Math.min(index + CHUNK, u8.length));
-      result += String.fromCharCode.apply(null, Array.from(slice));
-      index += CHUNK;
-    }
-    return btoa(result);
-  };
 
   const getFileName = (url: string) => {
     try {
@@ -139,6 +128,18 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     }
   }, []);
 
+  const toggleLoop = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!audio.loop) {
+      audio.loop = true;
+      setIsLooped(true);
+    } else {
+      audio.loop = false;
+      setIsLooped(false);
+    }
+  }, []);
+
   const handleNext = useCallback(() => {
     if (!currentPlaylist.length) return;
     setCurrentIndex((p) => (p + 1) % currentPlaylist.length);
@@ -163,6 +164,17 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     const s = Math.floor(sec % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
+  
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [togglePlayPause]);
   
   // ---------------- fetch metadata ----------------
   const fetchMetadata = useCallback(
@@ -295,7 +307,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
       </div>
 
       <div className="flex flex-col items-center sm:items-start sm:flex-row w-full gap-7">
-        <div className="w-2/3 space-y-5">
+        <div className="w-full sm:w-2/3 space-y-5">
           {currentTrack ? (
             <div className="flex flex-col items-center space-y-2">
               <img
@@ -336,22 +348,28 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
 
           <div className="flex items-center justify-center gap-6">
             <button
-              className="bg-gray-700 hover:bg-gray-600 transition text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+              className="bg-gray-700 hover:bg-gray-600 transition text-white rounded-full w-12 h-12 flex items-center justify-center"
               onClick={handlePrev}
             >
               ⏮
             </button>
             <button
-              className="bg-green-500 hover:bg-green-400 transition text-white rounded-full w-16 h-16 flex items-center justify-center shadow-xl"
+              className="bg-green-500 hover:bg-green-400 transition text-white rounded-full w-16 h-16 flex items-center justify-center"
               onClick={togglePlayPause}
             >
               {isPlaying ? <Pause /> : <Play />}
             </button>
             <button
-              className="bg-gray-700 hover:bg-gray-600 transition text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+              className="bg-gray-700 hover:bg-gray-600 transition text-white rounded-full w-12 h-12 flex items-center justify-center"
               onClick={handleNext}
             >
               ⏭
+            </button>
+            <button
+              className= {`transition text-white rounded-full w-12 h-12 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
+              onClick={toggleLoop}
+            >
+              <Repeat />
             </button>
           </div>
         </div>
