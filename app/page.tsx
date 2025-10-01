@@ -1,5 +1,3 @@
-"use client";
-
 import MusicPlayer from "@/app/components/MusicPlayer";
 import { playlists } from "./components/Playlists";
 
