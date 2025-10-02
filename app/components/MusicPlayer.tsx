@@ -278,10 +278,18 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
 
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
 
-  // ---------- return only main JSX container (HTML excluded) ----------
   return (
-    <div className="bg-gray-800 pb-6 px-6 rounded-3xl shadow-xl flex flex-col items-center w-full max-w-4xl mx-auto">
-      <div className="flex gap-2 w-full items-center justify-center p-4 text-sm font-semibold">
+    <div className="relative bg-gray-800 pb-6 px-6 rounded-3xl overflow-hidden shadow-xl flex flex-col items-center w-full max-w-4xl mx-auto">
+      {/* background blur */}
+      <div
+        className="absolute -inset-5 z-10 brightness-50 blur bg-center bg-cover"
+        style={{
+          backgroundImage: allMetadata[currentTrack]?.picture 
+            ? `url(${allMetadata[currentTrack]?.picture})`
+            : "none",
+        }}
+      />
+      <div className="flex gap-2 w-full items-center justify-center p-4 text-sm font-semibold z-20">
         <span className="mr-2">Playlists:</span>
         <button
           className={`px-3 py-1 rounded-lg ${
@@ -308,7 +316,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
         ))}
       </div>
 
-      <div className="flex flex-col items-center sm:items-start sm:flex-row w-full gap-7">
+      <div className="flex flex-col items-center sm:items-start sm:flex-row w-full gap-7 z-20">
         <div className="w-full sm:w-2/3 space-y-5">
           {currentTrack ? (
             <div className="flex flex-col items-center space-y-2">
@@ -377,7 +385,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
         </div>
 
         <div className="w-full space-y-3">
-          <div className="w-full bg-gray-800 rounded-xl p-1 space-y-1 max-h-80 overflow-y-auto">
+          <div className="w-full rounded-xl p-1 space-y-1 max-h-80 overflow-y-auto">
             {currentPlaylist.map((track, idx) => (
               <div
                 key={track + idx}
