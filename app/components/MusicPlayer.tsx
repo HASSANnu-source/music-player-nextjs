@@ -1,7 +1,8 @@
 "use client"
 
+import TrackItem from "./TrackItem";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Play, Pause, Repeat } from "lucide-react";
+import { Play, Pause, Repeat, SkipForward, SkipBack, Plus } from "lucide-react";
 
 interface TrackMetadata {
   title: string;
@@ -166,7 +167,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     const s = Math.floor(sec % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
-  
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Space") {
@@ -177,7 +178,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePlayPause]);
-  
+
   // ---------------- fetch metadata ----------------
   const fetchMetadata = useCallback(
     async (url: string) => {
@@ -215,7 +216,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
                 }
                 picDataUrl = `data:${picture.format};base64,${btoa(result)}`;
               }
-            } catch {}
+            } catch { }
             const title = tag.tags.title || getFileName(url);
             const artist = tag.tags.artist || "Unknown Artist";
             if (mounted.current) {
@@ -242,7 +243,6 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     currentPlaylist.forEach((url) => fetchMetadata(url));
   }, [currentPlaylist, fetchMetadata]);
 
-  // ---------------- save custom playlist ----------------
   const handleAddTrack = () => {
     const url = newTrack.trim();
     if (!url || !isCustom) return;
@@ -256,9 +256,41 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     saveTimer.current = window.setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: updated, metadata: allMetadata }));
-      } catch {}
+      } catch { }
       saveTimer.current = null;
     }, METADATA_SAVE_DEBOUNCE_MS);
+  };
+
+  const handleRemoveTrack = (idx: number) => {
+    if (!isCustom) return;
+    const updated = customPlaylist.filter((_, i) => i !== idx);
+    setCustomPlaylist(updated);
+    setCurrentPlaylist(updated);
+
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      try {
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ tracks: updated, metadata: allMetadata })
+        );
+      } catch {
+        saveTimer.current = null;
+      }
+    }, METADATA_SAVE_DEBOUNCE_MS);
+  };
+
+  const handleCopy = async(text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
   };
 
   useEffect(() => {
@@ -267,7 +299,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     saveTimer.current = window.setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: customPlaylist, metadata: allMetadata }));
-      } catch {}
+      } catch { }
       saveTimer.current = null;
     }, METADATA_SAVE_DEBOUNCE_MS);
     return () => {
@@ -279,12 +311,12 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
   const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
 
   return (
-    <div className="relative bg-gray-800 pb-6 px-6 rounded-3xl overflow-hidden shadow-xl flex flex-col items-center w-full max-w-4xl mx-auto">
+    <div className="relative bg-gray-800 pb-6 px-6 rounded-3xl overflow-hidden flex flex-col items-center w-full max-w-4xl mx-auto">
       {/* background blur */}
       <div
         className="absolute -inset-5 z-10 brightness-50 blur bg-center bg-cover"
         style={{
-          backgroundImage: allMetadata[currentTrack]?.picture 
+          backgroundImage: allMetadata[currentTrack]?.picture
             ? `url(${allMetadata[currentTrack]?.picture})`
             : "none",
         }}
@@ -292,11 +324,10 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
       <div className="flex gap-2 w-full items-center justify-center p-4 text-sm font-semibold z-20">
         <span className="mr-2">Playlists:</span>
         <button
-          className={`px-3 py-1 rounded-lg ${
-            isCustom
-              ? "bg-green-500 text-white"
-              : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-          }`}
+          className={`px-3 py-1 rounded-lg ${isCustom
+            ? "bg-green-500"
+            : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+            }`}
           onClick={() => setCurrentPlaylistName("Custom")}
         >
           Custom
@@ -304,11 +335,10 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
         {playlists.map((pl) => (
           <button
             key={pl.name}
-            className={`px-3 py-1 rounded-lg ${
-              pl.name === currentPlaylistName
-                ? "bg-green-500 text-white"
-                : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-            }`}
+            className={`px-3 py-1 rounded-lg ${pl.name === currentPlaylistName
+              ? "bg-green-500"
+              : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+              }`}
             onClick={() => setCurrentPlaylistName(pl.name)}
           >
             {pl.name}
@@ -316,8 +346,8 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
         ))}
       </div>
 
-      <div className="flex flex-col items-center sm:items-start sm:flex-row w-full gap-7 z-20">
-        <div className="w-full sm:w-2/3 space-y-5">
+      <div className="flex flex-col items-center sm:items-start md:flex-row w-full gap-7 z-20">
+        <div className="w-full md:w-2/3 space-y-5">
           {currentTrack ? (
             <div className="flex flex-col items-center space-y-2">
               <img
@@ -325,7 +355,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
                 alt="cover"
                 className="w-35 h-35 rounded-lg object-cover"
               />
-              <p className="text-lg text-white font-semibold text-center">
+              <p className="text-lg font-semibold text-center">
                 {allMetadata[currentTrack]?.title ?? getFileName(currentTrack)}
               </p>
               <p className="text-sm text-gray-300">
@@ -358,28 +388,28 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
 
           <div className="flex items-center justify-center gap-6">
             <button
-              className="bg-gray-700 hover:bg-gray-600 transition text-white rounded-full w-12 h-12 flex items-center justify-center"
+              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
               onClick={handlePrev}
             >
-              ⏮
+              <SkipBack size={20} />
             </button>
             <button
-              className="bg-green-500 hover:bg-green-400 transition text-white rounded-full w-16 h-16 flex items-center justify-center"
+              className="bg-green-500 hover:bg-green-400 transition rounded-full w-16 h-16 flex items-center justify-center"
               onClick={togglePlayPause}
             >
               {isPlaying ? <Pause /> : <Play />}
             </button>
             <button
-              className="bg-gray-700 hover:bg-gray-600 transition text-white rounded-full w-12 h-12 flex items-center justify-center"
+              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
               onClick={handleNext}
             >
-              ⏭
+              <SkipForward size={20} />
             </button>
             <button
-              className= {`transition text-white rounded-full w-12 h-12 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
+              className={`transition rounded-full w-12 h-12 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
               onClick={toggleLoop}
             >
-              <Repeat />
+              <Repeat size={20} />
             </button>
           </div>
         </div>
@@ -387,29 +417,17 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
         <div className="w-full space-y-3">
           <div className="w-full rounded-xl p-1 space-y-1 max-h-80 overflow-y-auto">
             {currentPlaylist.map((track, idx) => (
-              <div
-                key={track + idx}
-                className={`p-2 rounded-lg cursor-pointer flex items-center gap-2 ${
-                  idx === currentIndex
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-                }`}
+              <TrackItem
+                key={idx}
+                title={allMetadata[track]?.title ?? getFileName(track)}
+                artist={allMetadata[track]?.artist ?? "Unknown Artist"}
+                picture={allMetadata[track]?.picture}
+                isActive={idx === currentIndex}
                 onClick={() => setCurrentIndex(idx)}
-              >
-                <img
-                  src={allMetadata[track]?.picture ?? "/default-cover.png"}
-                  alt="cover"
-                  className="w-15 h-15 rounded-sm object-cover"
-                />
-                <div className="flex flex-col text-sm">
-                  <span className="truncate max-w-[160px]">
-                    {allMetadata[track]?.title ?? getFileName(track)}
-                  </span>
-                  <span className="text-gray-300 truncate max-w-[160px]">
-                    {allMetadata[track]?.artist ?? "Unknown Artist"}
-                  </span>
-                </div>
-              </div>
+                isCustom={isCustom}
+                onRemove={isCustom ? () => handleRemoveTrack(idx) : undefined}
+                onCopy={() => handleCopy(track)}
+              />
             ))}
           </div>
 
@@ -420,13 +438,13 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
                 placeholder="Enter MP3 URL"
                 value={newTrack}
                 onChange={(e) => setNewTrack(e.target.value)}
-                className="flex-1 p-2 bg-gray-700 rounded-lg text-sm text-white placeholder-gray-400 focus:outline-none"
+                className="flex-1 p-2 bg-gray-700 rounded-lg text-sm placeholder-gray-400 focus:outline-none"
               />
               <button
-                className="px-4 py-2 bg-blue-600 rounded-lg text-2xl hover:bg-blue-500 transition"
+                className="p-3 bg-blue-600 rounded-lg text-2xl hover:bg-blue-500 transition"
                 onClick={handleAddTrack}
               >
-                +
+                <Plus size={23} />
               </button>
             </div>
           )}
