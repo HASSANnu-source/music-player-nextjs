@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import TrackItem from "./TrackItem";
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -46,6 +46,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
   const [isLooped, setIsLooped] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [buffered, setBuffered] = useState(0);
   const [allMetadata, setAllMetadata] = useState<Record<string, TrackMetadata>>({});
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -97,12 +98,14 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
 
   // ---------------- audio playback ----------------
   useEffect(() => {
+    setProgress(0)
+    setBuffered(0)
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
     audio.src = currentTrack ?? "";
     audio.load();
-    if (isPlaying && currentTrack) {
+    if (currentTrack) {
       audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     } else setIsPlaying(false);
   }, [currentTrack]);
@@ -112,13 +115,23 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     if (!audio) return;
     const onTime = () => setProgress(audio.currentTime);
     const onLoaded = () => setDuration(audio.duration || 0);
+    const onProgress = () => {
+      if (audio.buffered.length > 0 && duration > 0) {
+        const end = audio.buffered.end(audio.buffered.length - 1);
+        const pct = Math.min(100, (end / duration) * 100);
+        setBuffered(pct);
+      }
+    };
+
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onLoaded);
+    audio.addEventListener("progress", onProgress);
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("progress", onProgress);
     };
-  }, [currentTrack]);
+  }, [duration, currentTrack]);
 
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current;
@@ -134,13 +147,8 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
   const toggleLoop = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (!audio.loop) {
-      audio.loop = true;
-      setIsLooped(true);
-    } else {
-      audio.loop = false;
-      setIsLooped(false);
-    }
+    audio.loop = !audio.loop;
+    setIsLooped(audio.loop);
   }, []);
 
   const handleNext = useCallback(() => {
@@ -224,15 +232,15 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
             }
             pendingRequests.current.delete(url);
           },
-          onError: (err: any) => {
-            console.error("[metadata] error:", url, err);
-            if (mounted.current) setAllMetadata((prev) => ({ ...prev, [url]: { title: getFileName(url), artist: "Unknown Artist" } }));
+          onError: () => {
+            if (mounted.current)
+              setAllMetadata((prev) => ({ ...prev, [url]: { title: getFileName(url), artist: "Unknown Artist" } }));
             pendingRequests.current.delete(url);
           },
         });
-      } catch (e) {
-        console.error("[metadata] exception:", url, e);
-        if (mounted.current) setAllMetadata((prev) => ({ ...prev, [url]: { title: getFileName(url), artist: "Unknown Artist" } }));
+      } catch {
+        if (mounted.current)
+          setAllMetadata((prev) => ({ ...prev, [url]: { title: getFileName(url), artist: "Unknown Artist" } }));
         pendingRequests.current.delete(url);
       }
     },
@@ -266,29 +274,18 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
     const updated = customPlaylist.filter((_, i) => i !== idx);
     setCustomPlaylist(updated);
     setCurrentPlaylist(updated);
-
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      try {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ tracks: updated, metadata: allMetadata })
-        );
-      } catch {
-        saveTimer.current = null;
-      }
-    }, METADATA_SAVE_DEBOUNCE_MS);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: updated, metadata: allMetadata }));
   };
 
-  const handleCopy = async(text: string) => {
+  const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
     } catch {
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand('copy');
+      document.execCommand("copy");
       document.body.removeChild(textArea);
     }
   };
@@ -307,8 +304,6 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
       saveTimer.current = null;
     };
   }, [customPlaylist, allMetadata, isCustom]);
-
-  const pct = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
 
   return (
     <div className="relative bg-gray-800 pb-6 px-6 rounded-3xl overflow-hidden flex flex-col items-center w-full max-w-4xl mx-auto">
@@ -369,17 +364,28 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
           <audio ref={audioRef} onEnded={handleNext} />
 
           <div className="w-full flex flex-col items-center">
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              value={progress}
-              onChange={handleSeek}
-              className="slider w-full h-1.5 rounded-lg appearance-none cursor-pointer"
-              style={{
-                background: `linear-gradient(to right, #10b981 0%, #10b981 ${pct}%, #374151 ${pct}%, #374151 100%)`,
-              }}
-            />
+            <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
+              {/* بخش دانلود شده */}
+              <div
+                className="absolute top-0 left-0 h-full rounded-lg bg-gray-500"
+                style={{ width: `${buffered}%` }}
+              />
+              {/* بخش پخش‌شده */}
+              <div
+                className="absolute top-0 left-0 h-full rounded-lg bg-green-500"
+                style={{ width: `${(progress / duration) * 100}%` }}
+              />
+              {/* اسلایدر */}
+              <input
+                type="range"
+                min={0}
+                max={duration || 0}
+                value={progress}
+                onChange={handleSeek}
+                className="slider absolute bg top-0 left-0 w-full h-full cursor-pointer"
+              />
+            </div>
+
             <div className="w-full flex justify-between text-xs text-gray-400 mt-1">
               <span>{formatTime(progress)}</span>
               <span>{formatTime(duration)}</span>
