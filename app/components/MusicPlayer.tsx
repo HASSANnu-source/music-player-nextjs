@@ -382,7 +382,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
                 max={duration || 0}
                 value={progress}
                 onChange={handleSeek}
-                className="slider absolute bg top-0 left-0 w-full h-full cursor-pointer"
+                className="slider absolute top-0 left-0 w-full h-full cursor-pointer"
               />
             </div>
 
