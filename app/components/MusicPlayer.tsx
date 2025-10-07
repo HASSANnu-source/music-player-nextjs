@@ -318,7 +318,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         }}
       />
 
-      <div className="w-full h-full z-20">
+      <div className="w-full h-full z-20 mb-20">
         <div className="space-y-5">
           {currentTrack ? (
             <div className="flex items-end gap-5">
@@ -377,8 +377,28 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
           )}
         </div>
         <audio ref={audioRef} onEnded={handleNext} />
-        <div className="flex justify-center items-center sticky bottom-0">
-          <div className="w-full flex flex-col items-center">
+        <div className="fixed bottom-4 right-4 px-6 py-2 w-250 rounded-2xl bg-gray-900 flex justify-center items-center gap-6">
+          <div className="flex items-center justify-center gap-6">
+            <button
+              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-10 h-10 flex items-center justify-center"
+              onClick={handlePrev}
+            >
+              <SkipBack size={19} />
+            </button>
+            <button
+              className="bg-green-500 hover:bg-green-400 transition rounded-full w-13 h-13 flex items-center justify-center"
+              onClick={togglePlayPause}
+              >
+              {isPlaying ? <Pause /> : <Play />}
+            </button>
+            <button
+              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-10 h-10 flex items-center justify-center"
+              onClick={handleNext}
+              >
+              <SkipForward size={19} />
+            </button>
+          </div>
+          <div className="w-full flex flex-col items-center translate-y-2">
             <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
               {/* بخش دانلود شده */}
               <div
@@ -406,32 +426,13 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
               <span>{formatTime(duration)}</span>
             </div>
           </div>
-
-          <div className="flex items-center justify-center gap-6">
-            <button
-              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
-              onClick={handlePrev}
-            >
-              <SkipBack size={20} />
-            </button>
-            <button
-              className="bg-green-500 hover:bg-green-400 transition rounded-full w-16 h-16 flex items-center justify-center"
-              onClick={togglePlayPause}
-              >
-              {isPlaying ? <Pause /> : <Play />}
-            </button>
-            <button
-              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
-              onClick={handleNext}
-              >
-              <SkipForward size={20} />
-            </button>
-            <button
-              className={`transition rounded-full w-12 h-12 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
-              onClick={toggleLoop}
-            >
-              <Repeat size={20} />
-            </button>
+          <div className="flex items-center justify-center">
+          <button
+            className={`transition rounded-full w-10 h-10 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
+            onClick={toggleLoop}
+          >
+            <Repeat size={19} />
+          </button>
           </div>
         </div>
       </div>
