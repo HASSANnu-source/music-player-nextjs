@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://music-player-nextjs-phi.vercel.app"),
   title: "Music Player",
   description: "A simple music player with playlist",
   openGraph: {

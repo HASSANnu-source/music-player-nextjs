@@ -1,10 +1,10 @@
-import MusicPlayer from "@/app/components/MusicPlayer";
 import { playlists } from "./components/Playlists";
+import PlayerLayout from "./components/PlayerLayout";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-gray-900 flex items-center justify-center p-6">
-      <MusicPlayer playlists={playlists} />
+    <main className="min-h-screen flex">
+      <PlayerLayout playlists={playlists} />
     </main>
   );
 }

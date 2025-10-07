@@ -7,4 +7,12 @@ export const playlists = [
       "https://dlmu.behplay.net/ghadimi/elahe/saghi.mp3",
     ],
   },
+  {
+    name: "Peace",
+    tracks: [
+      "https://xx.sahand-music.ir/Archive/h/Hayedeh/Hayedeh%20-%20Faryad/04%20Mehman.mp3",
+      "https://dlmu.behplay.net/ghadimi/elahe/saghi.mp3",
+      "https://dlrrooz.top/2025/1/New/Viguen%20-%20Saari%20Galin.mp3",
+    ],
+  },
 ];

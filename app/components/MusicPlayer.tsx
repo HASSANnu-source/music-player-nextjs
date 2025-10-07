@@ -15,8 +15,7 @@ interface Playlist {
   tracks: string[];
 }
 
-const STORAGE_KEY = "customPlaylist_v2";
-const METADATA_SAVE_DEBOUNCE_MS = 800;
+const STORAGE_KEY = "Playlists";
 
 declare global {
   interface Window {
@@ -28,14 +27,13 @@ declare global {
 
 interface MusicPlayerProps {
   playlists: Playlist[];
+  selectedPlaylist: string;
 }
 
-export default function MusicPlayer({ playlists }: MusicPlayerProps) {
+export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayerProps) {
   const proxy = "/api/proxy";
 
-  const [currentPlaylistName, setCurrentPlaylistName] = useState<string>(
-    playlists[0]?.name ?? "Custom"
-  );
+  const [currentPlaylistName, setCurrentPlaylistName] = useState<string>(selectedPlaylist);
   const [customPlaylist, setCustomPlaylist] = useState<string[]>([]);
   const [currentPlaylist, setCurrentPlaylist] = useState<string[]>(
     playlists[0]?.tracks ?? []
@@ -64,6 +62,10 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
       return url;
     }
   };
+
+  useEffect(() => {
+    setCurrentPlaylistName(selectedPlaylist);
+  }, [selectedPlaylist]);
 
   // ---------------- load saved playlist ----------------
   useEffect(() => {
@@ -266,7 +268,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: updated, metadata: allMetadata }));
       } catch { }
       saveTimer.current = null;
-    }, METADATA_SAVE_DEBOUNCE_MS);
+    }, 0);
   };
 
   const handleRemoveTrack = (idx: number) => {
@@ -291,14 +293,13 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
   };
 
   useEffect(() => {
-    if (!isCustom) return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: customPlaylist, metadata: allMetadata }));
       } catch { }
       saveTimer.current = null;
-    }, METADATA_SAVE_DEBOUNCE_MS);
+    }, 0);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = null;
@@ -306,118 +307,38 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
   }, [customPlaylist, allMetadata, isCustom]);
 
   return (
-    <div className="relative bg-gray-800 pb-6 px-6 rounded-3xl overflow-hidden flex flex-col items-center w-full max-w-4xl mx-auto">
+    <div className="relative bg-gray-800 p-6 h-full overflow-hidden flex flex-col w-full">
       {/* background blur */}
       <div
-        className="absolute -inset-5 z-10 brightness-50 blur bg-center bg-cover"
+        className="absolute -inset-5 z-10 h-90 brightness-50 blur-2xl bg-center bg-cover"
         style={{
           backgroundImage: allMetadata[currentTrack]?.picture
             ? `url(${allMetadata[currentTrack]?.picture})`
             : "none",
         }}
       />
-      <div className="flex gap-2 w-full items-center justify-center p-4 text-sm font-semibold z-20">
-        <span className="mr-2">Playlists:</span>
-        <button
-          className={`px-3 py-1 rounded-lg ${isCustom
-            ? "bg-green-500"
-            : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-            }`}
-          onClick={() => setCurrentPlaylistName("Custom")}
-        >
-          Custom
-        </button>
-        {playlists.map((pl) => (
-          <button
-            key={pl.name}
-            className={`px-3 py-1 rounded-lg ${pl.name === currentPlaylistName
-              ? "bg-green-500"
-              : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-              }`}
-            onClick={() => setCurrentPlaylistName(pl.name)}
-          >
-            {pl.name}
-          </button>
-        ))}
-      </div>
 
-      <div className="flex flex-col items-center sm:items-start md:flex-row w-full gap-7 z-20">
-        <div className="w-full md:w-2/3 space-y-5">
+      <div className="w-full h-full z-20">
+        <div className="space-y-5">
           {currentTrack ? (
-            <div className="flex flex-col items-center space-y-2">
+            <div className="flex items-end gap-5">
               <img
                 src={allMetadata[currentTrack]?.picture ?? "/default-cover.png"}
                 alt="cover"
                 className="w-35 h-35 rounded-lg object-cover"
               />
-              <p className="text-lg font-semibold text-center">
-                {allMetadata[currentTrack]?.title ?? getFileName(currentTrack)}
-              </p>
-              <p className="text-sm text-gray-300">
-                {allMetadata[currentTrack]?.artist ?? "Unknown Artist"}
-              </p>
+              <div>
+                <p className="text-2xl font-bold">
+                  {allMetadata[currentTrack]?.title ?? getFileName(currentTrack)}
+                </p>
+                <p className="text-gray-300">
+                  {allMetadata[currentTrack]?.artist ?? "Unknown Artist"}
+                </p>
+              </div>
             </div>
           ) : (
             <div className="text-gray-400">No track</div>
           )}
-
-          <audio ref={audioRef} onEnded={handleNext} />
-
-          <div className="w-full flex flex-col items-center">
-            <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
-              {/* بخش دانلود شده */}
-              <div
-                className="absolute top-0 left-0 h-full rounded-lg bg-gray-500"
-                style={{ width: `${buffered}%` }}
-              />
-              {/* بخش پخش‌شده */}
-              <div
-                className="absolute top-0 left-0 h-full rounded-lg bg-green-500"
-                style={{ width: `${(progress / duration) * 100}%` }}
-              />
-              {/* اسلایدر */}
-              <input
-                type="range"
-                min={0}
-                max={duration || 0}
-                value={progress}
-                onChange={handleSeek}
-                className="slider absolute top-0 left-0 w-full h-full cursor-pointer"
-              />
-            </div>
-
-            <div className="w-full flex justify-between text-xs text-gray-400 mt-1">
-              <span>{formatTime(progress)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center gap-6">
-            <button
-              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
-              onClick={handlePrev}
-            >
-              <SkipBack size={20} />
-            </button>
-            <button
-              className="bg-green-500 hover:bg-green-400 transition rounded-full w-16 h-16 flex items-center justify-center"
-              onClick={togglePlayPause}
-            >
-              {isPlaying ? <Pause /> : <Play />}
-            </button>
-            <button
-              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
-              onClick={handleNext}
-            >
-              <SkipForward size={20} />
-            </button>
-            <button
-              className={`transition rounded-full w-12 h-12 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
-              onClick={toggleLoop}
-            >
-              <Repeat size={20} />
-            </button>
-          </div>
         </div>
 
         <div className="w-full space-y-3">
@@ -445,7 +366,7 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
                 value={newTrack}
                 onChange={(e) => setNewTrack(e.target.value)}
                 className="flex-1 p-2 bg-gray-700 rounded-lg text-sm placeholder-gray-400 focus:outline-none"
-              />
+                />
               <button
                 className="p-3 bg-blue-600 rounded-lg text-2xl hover:bg-blue-500 transition"
                 onClick={handleAddTrack}
@@ -454,6 +375,64 @@ export default function MusicPlayer({ playlists }: MusicPlayerProps) {
               </button>
             </div>
           )}
+        </div>
+        <audio ref={audioRef} onEnded={handleNext} />
+        <div className="flex justify-center items-center sticky bottom-0">
+          <div className="w-full flex flex-col items-center">
+            <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
+              {/* بخش دانلود شده */}
+              <div
+                className="absolute top-0 left-0 h-full rounded-lg bg-gray-500"
+                style={{ width: `${buffered}%` }}
+                />
+              {/* بخش پخش‌شده */}
+              <div
+                className="absolute top-0 left-0 h-full rounded-lg bg-green-500"
+                style={{ width: `${(progress / duration) * 100}%` }}
+                />
+              {/* اسلایدر */}
+              <input
+                type="range"
+                min={0}
+                max={duration || 0}
+                value={progress}
+                onChange={handleSeek}
+                className="slider absolute top-0 left-0 w-full h-full cursor-pointer"
+              />
+            </div>
+
+            <div className="w-full flex justify-between text-xs text-gray-400 mt-1">
+              <span>{formatTime(progress)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-6">
+            <button
+              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
+              onClick={handlePrev}
+            >
+              <SkipBack size={20} />
+            </button>
+            <button
+              className="bg-green-500 hover:bg-green-400 transition rounded-full w-16 h-16 flex items-center justify-center"
+              onClick={togglePlayPause}
+              >
+              {isPlaying ? <Pause /> : <Play />}
+            </button>
+            <button
+              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-12 h-12 flex items-center justify-center"
+              onClick={handleNext}
+              >
+              <SkipForward size={20} />
+            </button>
+            <button
+              className={`transition rounded-full w-12 h-12 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
+              onClick={toggleLoop}
+            >
+              <Repeat size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
