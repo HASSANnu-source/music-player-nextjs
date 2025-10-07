@@ -307,19 +307,18 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
   }, [customPlaylist, allMetadata, isCustom]);
 
   return (
-    <div className="relative bg-gray-800 p-6 h-full overflow-hidden flex flex-col w-full">
+    <div className="bg-gray-800 h-full flex flex-col w-full">
+      <div className="relative w-full h-full overflow-hidden p-6 z-20 mb-20">
       {/* background blur */}
       <div
-        className="absolute -inset-5 z-10 h-90 brightness-50 blur-2xl bg-center bg-cover"
+        className="absolute -inset-5 -z-10 h-90 brightness-50 blur-2xl bg-center bg-cover"
         style={{
           backgroundImage: allMetadata[currentTrack]?.picture
             ? `url(${allMetadata[currentTrack]?.picture})`
             : "none",
         }}
       />
-
-      <div className="w-full h-full z-20 mb-20">
-        <div className="space-y-5">
+        <div className="mb-5">
           {currentTrack ? (
             <div className="flex items-end gap-5">
               <img
@@ -342,7 +341,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         </div>
 
         <div className="w-full space-y-3">
-          <div className="w-full rounded-xl p-1 space-y-1 max-h-80 overflow-y-auto">
+          <div className="w-full rounded-xl p-1 space-y-1">
             {currentPlaylist.map((track, idx) => (
               <TrackItem
                 key={idx}
@@ -376,64 +375,81 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
             </div>
           )}
         </div>
-        <audio ref={audioRef} onEnded={handleNext} />
-        <div className="fixed bottom-4 right-4 px-6 py-2 w-250 rounded-2xl bg-gray-900 flex justify-center items-center gap-6">
-          <div className="flex items-center justify-center gap-6">
-            <button
-              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-10 h-10 flex items-center justify-center"
-              onClick={handlePrev}
-            >
-              <SkipBack size={19} />
-            </button>
-            <button
-              className="bg-green-500 hover:bg-green-400 transition rounded-full w-13 h-13 flex items-center justify-center"
-              onClick={togglePlayPause}
-              >
-              {isPlaying ? <Pause /> : <Play />}
-            </button>
-            <button
-              className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-10 h-10 flex items-center justify-center"
-              onClick={handleNext}
-              >
-              <SkipForward size={19} />
-            </button>
-          </div>
-          <div className="w-full flex flex-col items-center translate-y-2">
-            <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
-              {/* بخش دانلود شده */}
-              <div
-                className="absolute top-0 left-0 h-full rounded-lg bg-gray-500"
-                style={{ width: `${buffered}%` }}
-                />
-              {/* بخش پخش‌شده */}
-              <div
-                className="absolute top-0 left-0 h-full rounded-lg bg-green-500"
-                style={{ width: `${(progress / duration) * 100}%` }}
-                />
-              {/* اسلایدر */}
-              <input
-                type="range"
-                min={0}
-                max={duration || 0}
-                value={progress}
-                onChange={handleSeek}
-                className="slider absolute top-0 left-0 w-full h-full cursor-pointer"
-              />
-            </div>
+      </div>
+      <audio ref={audioRef} onEnded={handleNext} />
+      <div className="sticky bottom-4 mx-4 z-20 rounded-2xl bg-gray-900 flex flex-wrap sm:flex-nowrap justify-between sm:justify-center items-center gap-4 sm:gap-6">
+        <div className="flex items-center pl-2.5 py-2 gap-3 flex-1 min-w-0 sm:min-w-1/4 overflow-hidden hover:bg-gray-700 rounded-l-xl transition">
+          <img
+            src={allMetadata[currentTrack]?.picture ?? "/default-cover.png"}
+            alt="cover"
+            className="w-12 h-12 sm:w-15 sm:h-15 rounded-lg object-cover flex-shrink-0"
+          />
 
-            <div className="w-full flex justify-between text-xs text-gray-400 mt-1">
-              <span>{formatTime(progress)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
+          <div className="flex flex-col min-w-0">
+            <p className="font-bold text-sm sm:text-base text-white truncate">
+              {allMetadata[currentTrack]?.title ?? getFileName(currentTrack)}
+            </p>
+            <p className="text-xs sm:text-sm text-gray-300 truncate">
+              {allMetadata[currentTrack]?.artist ?? "Unknown Artist"}
+            </p>
           </div>
-          <div className="flex items-center justify-center">
+        </div>
+
+        <div className="flex items-center pr-2.5 xl:pr-0 justify-center gap-2 flex-shrink-0">
+          <button
+            className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center"
+            onClick={handlePrev}
+          >
+            <SkipBack size={18} />
+          </button>
+          <button
+            className="bg-green-500 hover:bg-green-400 transition rounded-full w-12 h-12 sm:w-13 sm:h-13 flex items-center justify-center"
+            onClick={togglePlayPause}
+          >
+            {isPlaying ? <Pause /> : <Play />}
+          </button>
+          <button
+            className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center"
+            onClick={handleNext}
+          >
+            <SkipForward size={18} />
+          </button>
+        </div>
+        <div className="w-full hidden sm:flex flex-col pr-5 xl:pr-0 items-center translate-y-2">
+          <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
+            {/* بخش دانلود شده */}
+            <div
+              className="absolute top-0 left-0 h-full rounded-lg bg-gray-500"
+              style={{ width: `${buffered}%` }}
+              />
+            {/* بخش پخش‌شده */}
+            <div
+              className="absolute top-0 left-0 h-full rounded-lg bg-green-500"
+              style={{ width: `${(progress / duration) * 100}%` }}
+              />
+            {/* اسلایدر */}
+            <input
+              type="range"
+              min={0}
+              max={duration || 0}
+              value={progress}
+              onChange={handleSeek}
+              className="slider absolute top-0 left-0 w-full h-full cursor-pointer"
+            />
+          </div>
+
+          <div className="w-full flex justify-between text-xs text-gray-400 mt-1">
+            <span>{formatTime(progress)}</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+        </div>
+        <div className="hidden xl:flex pr-2.5 items-center justify-center">
           <button
             className={`transition rounded-full w-10 h-10 flex items-center justify-center ${isLooped ? "bg-green-500 hover:bg-green-400" : "bg-gray-700 hover:bg-gray-600"}`}
             onClick={toggleLoop}
           >
             <Repeat size={19} />
           </button>
-          </div>
         </div>
       </div>
     </div>
