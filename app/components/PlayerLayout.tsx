@@ -10,7 +10,7 @@ interface Playlist {
 }
 
 export default function PlayerLayout({ playlists }: { playlists: Playlist[] }) {
-  const [selectedPlaylist, setSelectedPlaylist] = useState<string>("Custom");
+  const [selectedPlaylist, setSelectedPlaylist] = useState<string>("Pop");
 
   return (
     <div className="flex w-full min-h-screen">

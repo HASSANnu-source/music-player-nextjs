@@ -1,6 +1,7 @@
 "use client";
 
 import TrackItem from "./TrackItem";
+import MiniPlayer from "./MiniPlayer";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause, Repeat, SkipForward, SkipBack, Plus } from "lucide-react";
 
@@ -45,6 +46,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [buffered, setBuffered] = useState(0);
+  const [isMiniOpen, setIsMiniOpen] = useState(false);
   const [allMetadata, setAllMetadata] = useState<Record<string, TrackMetadata>>({});
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -378,7 +380,10 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
       </div>
       <audio ref={audioRef} onEnded={handleNext} />
       <div className="sticky bottom-4 mx-4 z-20 rounded-2xl bg-gray-900 flex flex-wrap sm:flex-nowrap justify-between sm:justify-center items-center gap-4 sm:gap-6">
-        <div className="flex items-center pl-2.5 py-2 gap-3 flex-1 min-w-0 sm:min-w-1/4 overflow-hidden hover:bg-gray-700 rounded-l-xl transition">
+        <div 
+          className="flex items-center pl-2.5 py-2 gap-3 flex-1 min-w-0 sm:min-w-1/4 overflow-hidden hover:bg-gray-700 rounded-l-xl transition"
+          onClick={() => setIsMiniOpen(true)}
+        >
           <img
             src={allMetadata[currentTrack]?.picture ?? "/default-cover.png"}
             alt="cover"
@@ -452,6 +457,23 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
           </button>
         </div>
       </div>
+      <MiniPlayer
+        isOpen={isMiniOpen}
+        onClose={() => setIsMiniOpen(false)}
+        currentTrack={currentTrack}
+        allMetadata={allMetadata}
+        isPlaying={isPlaying}
+        togglePlayPause={togglePlayPause}
+        toggleLoop={toggleLoop}
+        isLooped={isLooped}
+        handleNext={handleNext}
+        handlePrev={handlePrev}
+        progress={progress}
+        buffered={buffered}
+        duration={duration}
+        handleSeek={handleSeek}
+        formatTime={formatTime}
+      />
     </div>
   );
 }
