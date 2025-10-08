@@ -5,6 +5,16 @@ import MiniPlayer from "./MiniPlayer";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Play, Pause, Repeat, SkipForward, SkipBack, Plus } from "lucide-react";
 
+const STORAGE_KEY = "Playlists";
+
+declare global {
+  interface Window {
+    jsmediatags?: {
+      read: (file: Blob, opts: { onSuccess: (tag: any) => void; onError: (err: any) => void }) => void;
+    };
+  }
+}
+
 interface TrackMetadata {
   title: string;
   artist: string;
@@ -16,16 +26,6 @@ interface Playlist {
   tracks: string[];
 }
 
-const STORAGE_KEY = "Playlists";
-
-declare global {
-  interface Window {
-    jsmediatags?: {
-      read: (file: Blob, opts: { onSuccess: (tag: any) => void; onError: (err: any) => void }) => void;
-    };
-  }
-}
-
 interface MusicPlayerProps {
   playlists: Playlist[];
   selectedPlaylist: string;
@@ -35,7 +35,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
   const proxy = "/api/proxy";
 
   const [currentPlaylistName, setCurrentPlaylistName] = useState<string>(selectedPlaylist);
-  const [customPlaylist, setCustomPlaylist] = useState<string[]>([]);
+  const [favoritePlaylist, setfavoritePlaylist] = useState<string[]>([]);
   const [currentPlaylist, setCurrentPlaylist] = useState<string[]>(
     playlists[0]?.tracks ?? []
   );
@@ -54,7 +54,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
   const saveTimer = useRef<number | null>(null);
   const mounted = useRef(true);
 
-  const isCustom = currentPlaylistName === "Custom";
+  const isFavorite = currentPlaylistName === "Favorite";
 
   const getFileName = (url: string) => {
     try {
@@ -76,7 +76,10 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed.tracks)) setCustomPlaylist(parsed.tracks);
+
+        if (Array.isArray(parsed.favoritePlaylist))
+          setfavoritePlaylist(parsed.favoritePlaylist);
+
         if (parsed.metadata && typeof parsed.metadata === "object") {
           setAllMetadata(parsed.metadata);
         }
@@ -89,14 +92,29 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     };
   }, []);
 
+
   useEffect(() => {
-    if (isCustom) setCurrentPlaylist(customPlaylist);
-    else {
-      const pl = playlists.find((p) => p.name === currentPlaylistName);
-      setCurrentPlaylist(pl?.tracks ?? []);
+    if (isFavorite) {
+      setCurrentPlaylist(favoritePlaylist);
+    } else {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : {};
+        const allPlaylists = [
+          ...playlists,
+          ...(parsed.playlists ?? []),
+        ];
+
+        const pl = allPlaylists.find((p: Playlist) => p.name === currentPlaylistName);
+        setCurrentPlaylist(pl?.tracks ?? []);
+      } catch (e) {
+        console.warn("Failed to load playlist:", e);
+        const pl = playlists.find((p) => p.name === currentPlaylistName);
+        setCurrentPlaylist(pl?.tracks ?? []);
+      }
     }
     setCurrentIndex(0);
-  }, [currentPlaylistName, customPlaylist, playlists, isCustom]);
+  }, [currentPlaylistName, favoritePlaylist, playlists, isFavorite]);
 
   const currentTrack = currentPlaylist[currentIndex];
 
@@ -255,11 +273,42 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     currentPlaylist.forEach((url) => fetchMetadata(url));
   }, [currentPlaylist, fetchMetadata]);
 
+  const handleAddTrackToPlaylist = (trackUrl: string, playlistName: string) => {
+    if (!trackUrl) return;
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
+
+      // پیدا کردن پلی‌لیست
+      const pl = parsed.playlists?.find((p: Playlist) => p.name === playlistName);
+      if (!pl) return;
+
+      // اضافه کردن ترک
+      pl.tracks.push(trackUrl);
+
+      // ذخیره metadata بدون پاک کردن داده‌های دیگه
+      parsed.metadata = allMetadata;
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+
+      // اگر پلی‌لیست فعلی انتخاب شده، آپدیت UI
+      if (currentPlaylistName === playlistName) {
+        setCurrentPlaylist([...pl.tracks]);
+      }
+
+      fetchMetadata(trackUrl);
+    } catch (e) {
+      console.error("Failed to add track:", e);
+    }
+  };
+
   const handleAddTrack = () => {
     const url = newTrack.trim();
-    if (!url || !isCustom) return;
-    const updated = [...customPlaylist, url];
-    setCustomPlaylist(updated);
+    if (!url || !isFavorite) return;
+
+    const updated = [...favoritePlaylist, url];
+    setfavoritePlaylist(updated);
     setCurrentPlaylist(updated);
     setNewTrack("");
     fetchMetadata(url);
@@ -267,18 +316,35 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: updated, metadata: allMetadata }));
+        // ابتدا داده‌های موجود رو بخون
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : {};
+
+        // آپدیت favoritePlaylist و metadata بدون پاک کردن داده‌های دیگر
+        parsed.favoritePlaylist = updated;
+        parsed.metadata = allMetadata;
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       } catch { }
       saveTimer.current = null;
     }, 0);
   };
 
   const handleRemoveTrack = (idx: number) => {
-    if (!isCustom) return;
-    const updated = customPlaylist.filter((_, i) => i !== idx);
-    setCustomPlaylist(updated);
+    if (!isFavorite) return;
+    const updated = favoritePlaylist.filter((_, i) => i !== idx);
+    setfavoritePlaylist(updated);
     setCurrentPlaylist(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: updated, metadata: allMetadata }));
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
+
+      parsed.favoritePlaylist = updated;
+      parsed.metadata = allMetadata;
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch { }
   };
 
   const handleCopy = async (text: string) => {
@@ -298,7 +364,13 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ tracks: customPlaylist, metadata: allMetadata }));
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : {};
+
+        parsed.favoritePlaylist = favoritePlaylist;
+        parsed.metadata = allMetadata;
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       } catch { }
       saveTimer.current = null;
     }, 0);
@@ -306,7 +378,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = null;
     };
-  }, [customPlaylist, allMetadata, isCustom]);
+  }, [favoritePlaylist, allMetadata, isFavorite]);
 
   return (
     <div className="bg-gray-800 h-full flex flex-col w-full">
@@ -352,14 +424,14 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
                 picture={allMetadata[track]?.picture}
                 isActive={idx === currentIndex}
                 onClick={() => setCurrentIndex(idx)}
-                isCustom={isCustom}
-                onRemove={isCustom ? () => handleRemoveTrack(idx) : undefined}
+                isFavorite={isFavorite}
+                onRemove={isFavorite ? () => handleRemoveTrack(idx) : undefined}
                 onCopy={() => handleCopy(track)}
               />
             ))}
           </div>
 
-          {isCustom && (
+          {isFavorite && (
             <div className="flex w-full gap-2 px-1">
               <input
                 type="text"
@@ -371,6 +443,26 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
               <button
                 className="p-3 bg-blue-600 rounded-lg text-2xl hover:bg-blue-500 transition"
                 onClick={handleAddTrack}
+              >
+                <Plus size={23} />
+              </button>
+            </div>
+          )}
+          {(currentPlaylistName !== "Favorite" && currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace") && (
+            <div className="flex w-full gap-2 px-1 mt-2">
+              <input
+                type="text"
+                placeholder="Enter MP3 URL"
+                value={newTrack}
+                onChange={(e) => setNewTrack(e.target.value)}
+                className="flex-1 p-2 bg-gray-700 rounded-lg text-sm placeholder-gray-400 focus:outline-none"
+              />
+              <button
+                className="p-3 bg-blue-600 rounded-lg text-2xl hover:bg-blue-500 transition"
+                onClick={() => {
+                  handleAddTrackToPlaylist(newTrack, currentPlaylistName);
+                  setNewTrack("");
+                }}
               >
                 <Plus size={23} />
               </button>
@@ -461,6 +553,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         isOpen={isMiniOpen}
         onClose={() => setIsMiniOpen(false)}
         currentTrack={currentTrack}
+        selectedPlaylist={selectedPlaylist}
         allMetadata={allMetadata}
         isPlaying={isPlaying}
         togglePlayPause={togglePlayPause}

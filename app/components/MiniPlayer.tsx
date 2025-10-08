@@ -6,6 +6,7 @@ interface MiniPlayerProps {
   isOpen: boolean;
   onClose: () => void;
   currentTrack: string;
+  selectedPlaylist: string;
   allMetadata: Record<string, { title: string; artist: string; picture?: string }>;
   isPlaying: boolean;
   togglePlayPause: () => void;
@@ -24,6 +25,7 @@ export default function MiniPlayer({
   isOpen,
   onClose,
   currentTrack,
+  selectedPlaylist,
   allMetadata,
   isPlaying,
   togglePlayPause,
@@ -71,42 +73,46 @@ export default function MiniPlayer({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col items-center justify-center 
-      bg-black/70 backdrop-blur-lg text-white px-6 py-8 transform transition-all duration-300
+      className={`fixed inset-0 z-50 flex flex-col gap-8 items-center justify-center 
+      bg-black/70 backdrop-blur-lg transform transition-all duration-300
       ${isOpen && animate ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"}`}
     >
-      {/* پس‌زمینه تار */}
       <div
         className="absolute inset-0 -z-10 bg-center bg-cover brightness-50 blur-2xl"
         style={{ backgroundImage: `url(${metadata.picture})` }}
       />
 
-      {/* دکمه بستن */}
       <button
         onClick={onClose}
-        className="absolute top-5 right-5 bg-gray-800 hover:bg-gray-700 p-2 rounded-full"
+        className="absolute top-5 left-5 bg-gray-800 hover:bg-gray-700 p-2 rounded-full"
       >
         <ChevronDown size={22} />
       </button>
 
-      {/* عکس بزرگ آهنگ */}
+      <div className="text-center">
+        <p className="font-semibold text-sm text-gray-300">
+          PLAYING FROM
+        </p>
+        <p>
+          {selectedPlaylist}
+        </p>
+      </div>
+      
       <img
         src={metadata.picture}
         alt="cover"
-        className="w-60 h-60 sm:w-80 sm:h-80 rounded-2xl shadow-lg object-cover mb-8 transition-transform duration-500"
+        className="w-60 h-60 rounded-2xl object-cover transition-transform duration-500"
       />
 
-      {/* اطلاعات آهنگ */}
-      <div className="text-center mb-8">
+      <div className="text-center">
         <h2 className="text-2xl sm:text-3xl font-bold truncate max-w-[90vw]">
           {metadata.title}
         </h2>
-        <p className="text-gray-300 text-sm sm:text-base mt-1 truncate max-w-[80vw]">
+        <p className="text-gray-300 text-sm sm:text-base  truncate max-w-[80vw]">
           {metadata.artist}
         </p>
       </div>
 
-      {/* نوار پیشرفت */}
       <div className="w-full max-w-md">
         <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
           <div
@@ -132,8 +138,7 @@ export default function MiniPlayer({
         </div>
       </div>
 
-      {/* کنترل پخش */}
-      <div className="flex items-center justify-center gap-6 mt-8">
+      <div className="flex items-center justify-center gap-6">
         <button
           className="bg-gray-700 hover:bg-gray-600 transition rounded-full w-14 h-14 flex items-center justify-center"
           onClick={handlePrev}

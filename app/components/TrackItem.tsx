@@ -12,7 +12,7 @@ interface TrackItemProps {
   artist: string;
   picture?: string;
   isActive: boolean;
-  isCustom: boolean;
+  isFavorite: boolean;
   onClick: () => void;
   onRemove?: () => void;
   onCopy?: () => void;
@@ -23,7 +23,7 @@ export default function TrackItem({
   artist,
   picture,
   isActive,
-  isCustom,
+  isFavorite,
   onClick,
   onRemove,
   onCopy,
@@ -56,7 +56,7 @@ export default function TrackItem({
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36 bg-gray-800 border-0">
-          {isCustom && (
+          {isFavorite && (
             <DropdownMenuItem
               className="text-red-400 focus:bg-gray-700 focus:text-red-200"
               onClick={(e) => {
