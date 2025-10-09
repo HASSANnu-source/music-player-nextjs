@@ -1,7 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { ChevronDown, MoreVertical, Plus } from "lucide-react";
 import { useLocalStorage } from "./useLocalStorage";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 const STORAGE_KEY = "Playlists";
 
@@ -19,6 +25,7 @@ interface SideBarProps {
 export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
   const [open, setOpen] = useState(true);
   const [newName, setNewName] = useState("")
+  const [firstTrack, setFirstTrack] = useState<string | null>(null);
   const allMetadata = useLocalStorage(STORAGE_KEY);
   const [allPlaylists, setAllPlaylists] = useState<Playlist[]>(playlists);
 
@@ -28,56 +35,103 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
       const parsed = JSON.parse(saved);
       if (parsed.playlists) setAllPlaylists([...playlists , ...parsed.playlists]);
     }
-  }, []);
+  }, [allMetadata]);
 
-  const getFirstTrack = () => {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed?.favoritePlaylist?.[0];
+        setFirstTrack(parsed?.favoritePlaylist?.[0] ?? null);
       }
     } catch (e) {
       console.warn("Failed to get first track:", e);
     }
-    return null;
-  };
-
-  const firstTrack = getFirstTrack();
+  }, [allMetadata]);
 
   const handleAddPlaylist = () => {
-  const name = newName.trim();
-  if (!name) return;
+    const name = newName.trim();
+    if (!name) return;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
 
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed = saved ? JSON.parse(saved) : {};
+      // حفظ سایر داده‌ها مثل favoritePlaylist و متادیتا
+      const existingFavorites = parsed.favoritePlaylist ?? [];
+      const existingMetadata = parsed.metadata ?? {};
 
-    // حفظ سایر داده‌ها مثل favoritePlaylist و متادیتا
-    const existingFavorites = parsed.favoritePlaylist ?? [];
-    const existingMetadata = parsed.metadata ?? {};
+      if (!parsed.playlists) parsed.playlists = [];
 
-    if (!parsed.playlists) parsed.playlists = [];
+      parsed.playlists.push({ name, tracks: [] });
 
-    parsed.playlists.push({ name, tracks: [] });
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          ...parsed,
+          favoritePlaylist: existingFavorites,
+          metadata: existingMetadata,
+        })
+      );
+      setAllPlaylists((prev) => [...prev, { name, tracks: [] }]);
+      setNewName("");
+      onSelect(name);
+    } catch (e) {
+      console.error("Failed to add playlist:", e);
+    }
+  };
 
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        ...parsed,
-        favoritePlaylist: existingFavorites,
-        metadata: existingMetadata,
-      })
-    );
+  const handleRemovePlaylist = (playlistName: string) => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
 
-    setAllPlaylists((prev) => [...prev, { name, tracks: [] }]);
-    setNewName("");
-    onSelect(name);
-  } catch (e) {
-    console.error("Failed to add playlist:", e);
-  }
-};
+      const parsed = JSON.parse(saved);
 
+      const removedPlaylist = parsed.playlists?.find(
+        (p: Playlist) => p.name === playlistName
+      );
+
+      // حذف پلی‌لیست از لیست
+      parsed.playlists =
+        parsed.playlists?.filter((p: Playlist) => p.name !== playlistName) ?? [];
+
+      // حذف متادیتای آهنگ‌هایی که فقط در این پلی‌لیست بودن
+      if (removedPlaylist && removedPlaylist.tracks?.length) {
+        const remainingPlaylists = [
+          ...(parsed.playlists ?? []),
+          { name: "Favorite", tracks: parsed.favoritePlaylist ?? [] },
+        ];
+
+        const remainingTracks = new Set(
+          remainingPlaylists.flatMap((pl: Playlist) => pl.tracks)
+        );
+
+        for (const trackId of removedPlaylist.tracks) {
+          if (!remainingTracks.has(trackId)) {
+            delete parsed.metadata?.[trackId];
+          }
+        }
+      }
+
+      // ذخیره در localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+
+      // آپدیت UI
+      setAllPlaylists((prev) => prev.filter((p) => p.name !== playlistName));
+
+      // اگر پلی‌لیست فعلی حذف شد، بعد از آپدیت، برو روی Pop یا اولین پلی‌لیست موجود
+      if (selected === playlistName) {
+        setTimeout(() => {
+          const firstPL = parsed.playlists?.[0]?.name ?? "Pop";
+          onSelect(firstPL);
+        }, 0);
+      }
+    } catch (e) {
+      console.error("Failed to remove playlist:", e);
+    }
+  };
 
   return (
     <div className="hidden sm:block bg-gray-900 w-1/3 max-w-80 min-h-screen text-white p-4 border-r border-gray-700 overflow-y-auto">
@@ -118,18 +172,35 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
               <button
                 key={pl.name}
                 onClick={() => onSelect(pl.name)}
-                className={`flex items-center gap-3 w-full p-2 rounded-lg transition ${
+                className={`flex items-center justify-between w-full p-2 rounded-lg transition ${
                   selected === pl.name ? "bg-green-700" : "hover:bg-gray-800"
                 }`}
               >
-                <img
-                  src={
-                    allMetadata?.[pl.tracks?.[0]]?.picture ?? "/default-cover.png"
-                  }
-                  alt={pl.name}
-                  className="w-10 h-10 rounded-md object-cover"
-                />
-                <span className="truncate text-left">{pl.name}</span>
+                <div className="flex items-center justify-center gap-3">
+                  <img
+                    src={allMetadata?.[pl.tracks?.[0]]?.picture ?? "/default-cover.png"}
+                    alt={pl.name}
+                    className="w-10 h-10 rounded-md object-cover"
+                  />
+                  <span className="truncate text-left">{pl.name}</span>
+                </div>
+                {!["Favorite", "Pop", "Peace"].includes(pl.name) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <div className="text-gray-300">
+                        <MoreVertical size={18} />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-36 bg-gray-800 border-0">
+                      <DropdownMenuItem
+                        className="text-red-400 focus:bg-gray-700 focus:text-red-200"
+                        onClick={() => handleRemovePlaylist(pl.name)}
+                      >
+                        Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </button>
             ))}
             <div className="flex items-center gap-2 mt-3">

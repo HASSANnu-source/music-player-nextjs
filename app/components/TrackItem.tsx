@@ -1,4 +1,5 @@
 "use client";
+
 import { MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
@@ -12,7 +13,7 @@ interface TrackItemProps {
   artist: string;
   picture?: string;
   isActive: boolean;
-  isFavorite: boolean;
+  currentPlaylistName: string;
   onClick: () => void;
   onRemove?: () => void;
   onCopy?: () => void;
@@ -23,7 +24,7 @@ export default function TrackItem({
   artist,
   picture,
   isActive,
-  isFavorite,
+  currentPlaylistName,
   onClick,
   onRemove,
   onCopy,
@@ -56,7 +57,7 @@ export default function TrackItem({
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36 bg-gray-800 border-0">
-          {isFavorite && (
+          {(currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace") && (
             <DropdownMenuItem
               className="text-red-400 focus:bg-gray-700 focus:text-red-200"
               onClick={(e) => {

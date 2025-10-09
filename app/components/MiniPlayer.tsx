@@ -89,7 +89,7 @@ export default function MiniPlayer({
         <ChevronDown size={22} />
       </button>
 
-      <div className="text-center">
+      <div className="absolute top-5 text-center">
         <p className="font-semibold text-sm text-gray-300">
           PLAYING FROM
         </p>
@@ -113,7 +113,7 @@ export default function MiniPlayer({
         </p>
       </div>
 
-      <div className="w-full max-w-md">
+      <div className="w-9/10 max-w-md">
         <div className="relative w-full h-1.5 rounded-lg bg-gray-700">
           <div
             className="absolute top-0 left-0 h-full rounded-lg bg-gray-500"
