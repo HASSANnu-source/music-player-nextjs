@@ -134,8 +134,11 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
   };
 
   return (
-    <div className="bg-gray-900 pt-20 sm:w-1/3 sm:max-w-80 min-h-screen text-white p-4 border-r border-gray-700 overflow-y-auto">
+    <div className="bg-gray-900 w-full min-h-screen text-white p-4">
       <div className="flex flex-col gap-4">
+        <p className="text-xl font-bold pb-4 border-b-1">
+          Music Player
+        </p>
         <button
           onClick={() => setOpen(!open)}
           className="flex items-center justify-between w-full text-lg font-semibold hover:text-green-400 transition"
@@ -149,7 +152,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
         </button>
 
         {open && (
-          <div className="flex flex-col gap-2 animate-fadeIn">
+          <div className="flex flex-col gap-2">
             <button
               key="Favorite"
               onClick={() => onSelect("Favorite")}

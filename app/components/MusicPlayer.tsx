@@ -593,7 +593,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         </div>
       </div>
       <audio ref={audioRef} onEnded={handleNext} />
-      <div className="sticky bottom-4 w-95/100 z-20 rounded-2xl bg-gray-900 flex flex-wrap sm:flex-nowrap justify-between sm:justify-center items-center gap-4 sm:gap-6">
+      <div className="fixed sm:sticky bottom-4 w-95/100 z-20 rounded-2xl bg-gray-900 flex flex-wrap sm:flex-nowrap justify-between sm:justify-center items-center gap-4 sm:gap-6">
         <div 
           className="flex items-center pl-2.5 py-2 gap-3 flex-1 min-w-0 sm:min-w-1/4 overflow-hidden hover:bg-gray-700 rounded-l-xl transition"
           onClick={() => setIsMiniOpen(true)}
