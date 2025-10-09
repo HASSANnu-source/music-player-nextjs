@@ -134,7 +134,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
   };
 
   return (
-    <div className="hidden sm:block bg-gray-900 w-1/3 max-w-80 min-h-screen text-white p-4 border-r border-gray-700 overflow-y-auto">
+    <div className="bg-gray-900 pt-20 sm:w-1/3 sm:max-w-80 min-h-screen text-white p-4 border-r border-gray-700 overflow-y-auto">
       <div className="flex flex-col gap-4">
         <button
           onClick={() => setOpen(!open)}

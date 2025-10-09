@@ -413,47 +413,47 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
   };
 
   const handleRemoveTrack = (idx: number) => {
-  if (!isFavorite) return;
+    if (!isFavorite) return;
 
-  const removedTrack = favoritePlaylist[idx];
-  const updated = favoritePlaylist.filter((_, i) => i !== idx);
+    const removedTrack = favoritePlaylist[idx];
+    const updated = favoritePlaylist.filter((_, i) => i !== idx);
 
-  // آپدیت UI
-  setfavoritePlaylist(updated);
-  setCurrentPlaylist(updated);
+    // آپدیت UI
+    setfavoritePlaylist(updated);
+    setCurrentPlaylist(updated);
 
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed = saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
 
-    parsed.favoritePlaylist = updated;
+      parsed.favoritePlaylist = updated;
 
-    // بررسی اینکه آهنگ توی هیچ پلی‌لیست دیگه‌ای نباشه
-    const playlists = parsed.playlists ?? [];
-    const stillExistsSomewhere = playlists.some((pl: any) =>
-      pl.tracks.includes(removedTrack)
-    );
+      // بررسی اینکه آهنگ توی هیچ پلی‌لیست دیگه‌ای نباشه
+      const playlists = parsed.playlists ?? [];
+      const stillExistsSomewhere = playlists.some((pl: any) =>
+        pl.tracks.includes(removedTrack)
+      );
 
-    if (!stillExistsSomewhere && parsed.metadata?.[removedTrack]) {
-      delete parsed.metadata[removedTrack];
-      console.log("✅ metadata deleted for:", removedTrack);
-    } else {
-      console.log("⏩ track still exists in another playlist:", removedTrack);
+      if (!stillExistsSomewhere && parsed.metadata?.[removedTrack]) {
+        delete parsed.metadata[removedTrack];
+        console.log("✅ metadata deleted for:", removedTrack);
+      } else {
+        console.log("⏩ track still exists in another playlist:", removedTrack);
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+
+      // آپدیت استیت محلی
+      setAllMetadata((prev) => {
+        if (stillExistsSomewhere || !prev?.[removedTrack]) return prev;
+        const copy = { ...prev };
+        delete copy[removedTrack];
+        return copy;
+      });
+    } catch (e) {
+      console.error("Failed to remove track:", e);
     }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-
-    // آپدیت استیت محلی
-    setAllMetadata((prev) => {
-      if (stillExistsSomewhere || !prev?.[removedTrack]) return prev;
-      const copy = { ...prev };
-      delete copy[removedTrack];
-      return copy;
-    });
-  } catch (e) {
-    console.error("Failed to remove track:", e);
-  }
-};
+  };
 
   const handleCopy = async (text: string) => {
     try {
