@@ -24,8 +24,9 @@ interface SideBarProps {
 
 export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
   const [open, setOpen] = useState(true);
-  const [newName, setNewName] = useState("")
-  const [firstTrack, setFirstTrack] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
+  const [firstFavoriteTrack, setFirstTrack] = useState<string | null>(null);
+  const [firstAllTrack, setFirstAllTrack] = useState<string | null>(null);
   const allMetadata = useLocalStorage(STORAGE_KEY);
   const [allPlaylists, setAllPlaylists] = useState<Playlist[]>(playlists);
 
@@ -45,6 +46,8 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
       if (saved) {
         const parsed = JSON.parse(saved);
         setFirstTrack(parsed?.favoritePlaylist?.[0] ?? null);
+        const firstKey = parsed?.metadata ? Object.keys(parsed.metadata)[0] : null;
+        setFirstAllTrack(firstKey ?? null);
       }
     } catch (e) {
       console.warn("Failed to get first track:", e);
@@ -86,42 +89,11 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (!saved) return;
-
       const parsed = JSON.parse(saved);
-
-      const removedPlaylist = parsed.playlists?.find(
-        (p: Playlist) => p.name === playlistName
-      );
-
-      // حذف پلی‌لیست از لیست
       parsed.playlists =
         parsed.playlists?.filter((p: Playlist) => p.name !== playlistName) ?? [];
-
-      // حذف متادیتای آهنگ‌هایی که فقط در این پلی‌لیست بودن
-      if (removedPlaylist && removedPlaylist.tracks?.length) {
-        const remainingPlaylists = [
-          ...(parsed.playlists ?? []),
-          { name: "Favorite", tracks: parsed.favoritePlaylist ?? [] },
-        ];
-
-        const remainingTracks = new Set(
-          remainingPlaylists.flatMap((pl: Playlist) => pl.tracks)
-        );
-
-        for (const trackId of removedPlaylist.tracks) {
-          if (!remainingTracks.has(trackId)) {
-            delete parsed.metadata?.[trackId];
-          }
-        }
-      }
-
-      // ذخیره در localStorage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-
-      // آپدیت UI
       setAllPlaylists((prev) => prev.filter((p) => p.name !== playlistName));
-
-      // اگر پلی‌لیست فعلی حذف شد، بعد از آپدیت، برو روی Pop یا اولین پلی‌لیست موجود
       if (selected === playlistName) {
         setTimeout(() => {
           const firstPL = parsed.playlists?.[0]?.name ?? "Pop";
@@ -134,7 +106,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
   };
 
   return (
-    <div className="bg-gray-900 w-full min-h-screen text-white p-4">
+    <div className="bg-gray-900 w-full h-full text-white p-4">
       <div className="flex flex-col gap-4">
         <p className="text-xl font-bold pb-4 border-b-1">
           Music Player
@@ -154,6 +126,23 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
         {open && (
           <div className="flex flex-col gap-2">
             <button
+              key="All"
+              onClick={() => onSelect("All")}
+              className={`flex items-center gap-3 w-full p-2 rounded-lg transition ${
+                selected === "All" ? "bg-green-700" : "hover:bg-gray-800"
+              }`}
+            >
+              <img
+                src={
+                  (firstAllTrack && allMetadata?.[firstAllTrack]?.picture) ??
+                  "/default-cover.png"
+                }
+                alt="All"
+                className="w-10 h-10 rounded-md object-cover"
+              />
+              <span className="truncate text-left">All</span>
+            </button>
+            <button
               key="Favorite"
               onClick={() => onSelect("Favorite")}
               className={`flex items-center gap-3 w-full p-2 rounded-lg transition ${
@@ -162,7 +151,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
             >
               <img
                 src={
-                  (firstTrack && allMetadata?.[firstTrack]?.picture) ??
+                  (firstFavoriteTrack && allMetadata?.[firstFavoriteTrack]?.picture) ??
                   "/default-cover.png"
                 }
                 alt="Favorite"

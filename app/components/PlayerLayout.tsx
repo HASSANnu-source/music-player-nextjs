@@ -11,7 +11,7 @@ interface Playlist {
 }
 
 export default function PlayerLayout({ playlists }: { playlists: Playlist[] }) {
-  const [selectedPlaylist, setSelectedPlaylist] = useState<string>("Pop");
+  const [selectedPlaylist, setSelectedPlaylist] = useState<string>("All");
   const [isOpen, setIsOpen] = useState(false);
 
   return (

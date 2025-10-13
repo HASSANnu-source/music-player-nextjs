@@ -34,18 +34,12 @@ interface MusicPlayerProps {
 export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayerProps) {
   const proxy = "/api/proxy";
 
-  const [currentPlaylistName, setCurrentPlaylistName] = useState<string>(selectedPlaylist);
   const [favoritePlaylist, setfavoritePlaylist] = useState<string[]>([]);
   const [currentPlaylist, setCurrentPlaylist] = useState<string[]>(
     playlists[0]?.tracks ?? []
   );
-
-  // currentIndex فقط وقتی مقدار می‌گیره که کاربر خودش انتخاب کنه (init = -1)
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-
-  // منبع حقیقت برای پخش — فقط وقتی کاربر بخواد عوض میشه
   const [currentTrackUrl, setCurrentTrackUrl] = useState<string>("https://dlrrooz.top/2025/1/New/Viguen%20-%20Saari%20Galin.mp3");
-
   const [newTrack, setNewTrack] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLooped, setIsLooped] = useState(false);
@@ -57,10 +51,11 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pendingRequests = useRef<Set<string>>(new Set());
-  const saveTimer = useRef<number | null>(null);
   const mounted = useRef(true);
 
+  const currentPlaylistName = selectedPlaylist;
   const isFavorite = currentPlaylistName === "Favorite";
+  const isAll = currentPlaylistName === "All";
   const firstTrack = currentPlaylist[0];
 
   const getFileName = (url: string) => {
@@ -71,12 +66,6 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
       return url;
     }
   };
-
-  // وقتی parent selectedPlaylist رو فرستاد، فقط اسم رو ست می‌کنیم.
-  useEffect(() => {
-    setCurrentPlaylistName(selectedPlaylist);
-  }, [selectedPlaylist]);
-
   // ---------------- load saved playlist ----------------
   useEffect(() => {
     mounted.current = true;
@@ -109,6 +98,14 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       const parsed = saved ? JSON.parse(saved) : {};
+
+      // اگر پلی‌لیست All انتخاب شده
+      if (isAll) {
+        const allKeys = Object.keys(parsed.metadata ?? {});
+        setCurrentPlaylist(allKeys);
+        return;
+      }
+
       const allPlaylists = [...playlists, ...(parsed.playlists ?? [])];
       const pl = allPlaylists.find((p: Playlist) => p.name === currentPlaylistName);
       const newTracks = pl?.tracks ?? [];
@@ -125,10 +122,8 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
       const pl = playlists.find((p) => p.name === currentPlaylistName);
       setCurrentPlaylist(pl?.tracks ?? []);
     }
-  }, [currentPlaylistName, favoritePlaylist, playlists, isFavorite]);
+  }, [currentPlaylistName, favoritePlaylist, playlists, isFavorite, isAll, allMetadata]);
 
-  // currentTrack بر اساس currentTrackUrl (که منبع حقیقت پخشه) یا در صورتی که null باشه،
-  // اگر کاربر ایندکس زده باشه از currentPlaylist[currentIndex] استفاده می‌کنیم.
   const currentTrack = currentTrackUrl ?? (currentIndex >= 0 ? currentPlaylist[currentIndex] : undefined);
 
   // ---------------- audio playback ----------------
@@ -349,56 +344,29 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (!saved) return;
-
       const parsed = JSON.parse(saved);
       const playlist = parsed.playlists?.find((p: any) => p.name === playlistName);
       if (!playlist) return;
-
-      const removedTrack = playlist.tracks[idx];
       playlist.tracks.splice(idx, 1);
-
       parsed.playlists = parsed.playlists.map((p: any) =>
         p.name === playlistName ? playlist : p
       );
-
-      // بررسی وجود آهنگ در سایر پلی‌لیست‌ها و Favorite
-      const allOtherPlaylists = parsed.playlists.filter(
-        (p: any) => p.name !== playlistName
-      );
-      const favorite = parsed.favoritePlaylist ?? [];
-
-      const stillExists =
-        favorite.includes(removedTrack) ||
-        allOtherPlaylists.some((pl: any) => pl.tracks.includes(removedTrack));
-
-      if (!stillExists) {
-        delete parsed.metadata?.[removedTrack];
-        console.log("✅ metadata deleted for:", removedTrack);
-      } else {
-        console.log("⏩ metadata kept (still in another playlist):", removedTrack);
-      }
-
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-
-      // بروزرسانی state
       setCurrentPlaylist(playlist.tracks);
     } catch (e) {
       console.error("Failed to remove track from playlist:", e);
     }
   };
 
-  const handleAddTrack = () => {
-    const url = newTrack.trim();
-    if (!url || !isFavorite) return;
+  const handleAddToFavorite = (track?: string) => {
+    const url = track || newTrack.trim();
+    if (!url) return;
 
     const updated = [...favoritePlaylist, url];
     setfavoritePlaylist(updated);
     setCurrentPlaylist(updated);
     setNewTrack("");
     fetchMetadata(url);
-
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         const parsed = saved ? JSON.parse(saved) : {};
@@ -407,51 +375,78 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         parsed.metadata = allMetadata;
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      } catch { }
-      saveTimer.current = null;
-    }, 0);
+      } catch(e) {
+        console.log(e)
+      }
   };
 
-  const handleRemoveTrack = (idx: number) => {
+  const handleRemoveFromFavorite = (idx: number) => {
     if (!isFavorite) return;
-
-    const removedTrack = favoritePlaylist[idx];
     const updated = favoritePlaylist.filter((_, i) => i !== idx);
-
-    // آپدیت UI
     setfavoritePlaylist(updated);
     setCurrentPlaylist(updated);
-
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       const parsed = saved ? JSON.parse(saved) : {};
-
       parsed.favoritePlaylist = updated;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch (e) {
+      console.error("Failed to remove track from favorite:", e);
+    }
+  };
 
-      // بررسی اینکه آهنگ توی هیچ پلی‌لیست دیگه‌ای نباشه
-      const playlists = parsed.playlists ?? [];
-      const stillExistsSomewhere = playlists.some((pl: any) =>
-        pl.tracks.includes(removedTrack)
-      );
+  const handleAddMetadata = () => {
+    const url = newTrack.trim();
+    if (!url) return;
+    setNewTrack("");
+    fetchMetadata(url);
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : {};
+        parsed.metadata = allMetadata;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      } catch(e) {
+        console.log("Failed to add metadata:", e)
+      }
+  };
 
-      if (!stillExistsSomewhere && parsed.metadata?.[removedTrack]) {
-        delete parsed.metadata[removedTrack];
-        console.log("✅ metadata deleted for:", removedTrack);
-      } else {
-        console.log("⏩ track still exists in another playlist:", removedTrack);
+  const handleRemoveMetadata = (url: string) => {
+    try {
+      // 1. حذف از state
+      setAllMetadata(prev => {
+        const newMetadata = { ...prev };
+        delete newMetadata[url];
+        return newMetadata;
+      });
+
+      // 2. حذف از localStorage
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        
+        // حذف از metadata
+        if (parsed.metadata && parsed.metadata[url]) {
+          delete parsed.metadata[url];
+        }
+
+        // حذف از favoritePlaylist اگر وجود دارد
+        if (Array.isArray(parsed.favoritePlaylist)) {
+          parsed.favoritePlaylist = parsed.favoritePlaylist.filter((track: string) => track !== url);
+        }
+
+        // حذف از سایر پلی‌لیست‌ها
+        if (Array.isArray(parsed.favoritePlaylist)) {
+          const newFav = parsed.favoritePlaylist.filter((track: string) => track !== url);
+          parsed.favoritePlaylist = newFav;
+          setfavoritePlaylist(newFav);
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-
-      // آپدیت استیت محلی
-      setAllMetadata((prev) => {
-        if (stillExistsSomewhere || !prev?.[removedTrack]) return prev;
-        const copy = { ...prev };
-        delete copy[removedTrack];
-        return copy;
-      });
-    } catch (e) {
-      console.error("Failed to remove track:", e);
+      console.log("✅ Metadata removed for:", url);
+    } catch(e) {
+      console.log("❌ Failed to remove metadata:", e);
     }
   };
 
@@ -469,23 +464,17 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
   };
 
   useEffect(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const parsed = saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
 
-        parsed.favoritePlaylist = favoritePlaylist;
-        parsed.metadata = allMetadata;
+      parsed.favoritePlaylist = favoritePlaylist;
+      parsed.metadata = allMetadata;
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      } catch { }
-      saveTimer.current = null;
-    }, 0);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-      saveTimer.current = null;
-    };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch(e) {
+      console.log(e)
+    }
   }, [favoritePlaylist, allMetadata, isFavorite]);
 
   // برای رندر UI: ایندکسِ آهنگ فعال در currentPlaylist (اگر آهنگ فعلی در پلی‌لیست باشه)
@@ -503,55 +492,68 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
             : "none",
         }}
       />
-        <div className="mb-5">
-          {currentTrack ? (
-            <div className="flex items-end gap-5">
-              <img
-                src={allMetadata[firstTrack ?? ""]?.picture ?? "/default-cover.png"}
-                alt="cover"
-                className="w-35 h-35 rounded-lg object-cover"
-              />
-              <div>
-                <p className="text-2xl font-bold">
-                  {currentPlaylistName}
-                </p>
-                <p className="text-gray-300 flex gap-1">
-                  {currentPlaylist.length}
-                  <span>Songs</span>
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="text-gray-400">No track</div>
-          )}
+        <div className="flex items-end gap-5 mb-5">
+          <img
+            src={allMetadata[firstTrack ?? ""]?.picture ?? "/default-cover.png"}
+            alt="cover"
+            className="w-35 h-35 rounded-lg object-cover"
+          />
+          <div>
+            <p className="text-2xl font-bold">
+              {currentPlaylistName}
+            </p>
+            <p className="text-gray-300 flex gap-1">
+              {currentPlaylist.length}
+              <span>Songs</span>
+            </p>
+          </div>
         </div>
-
+        
         <div className="w-full space-y-3">
           <div className="w-full rounded-xl p-1 space-y-1">
             {currentPlaylist.map((track, idx) => (
               <TrackItem
+                url={track}
                 key={idx}
                 title={allMetadata[track]?.title ?? getFileName(track)}
                 artist={allMetadata[track]?.artist ?? "Unknown Artist"}
                 picture={allMetadata[track]?.picture}
                 isActive={idx === activeIndex}
                 onClick={() => {
-                  // فقط وقتی کاربر کلیک کرد، ایندکس و URL تغییر کنه
                   setCurrentIndex(idx);
                   setCurrentTrackUrl(track);
                 }}
                 currentPlaylistName={currentPlaylistName}
                 onRemove={
                   isFavorite
-                    ? () => handleRemoveTrack(idx)
-                    : (currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace")
-                      ? () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
-                      : undefined
+                    ? () => handleRemoveFromFavorite(idx)
+                    : (isAll
+                      ? () => handleRemoveMetadata(track)
+                      : () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
+                    )
                 }
                 onCopy={() => handleCopy(track)}
-              />
+                AddToFavorite={(track) => handleAddToFavorite(track)}
+                />
             ))}
           </div>
+          {isAll && (
+            <div className="flex w-full gap-2 px-1">
+              <input
+                type="text"
+                placeholder="Enter MP3 URL"
+                value={newTrack}
+                onChange={(e) => setNewTrack(e.target.value)}
+                className="flex-1 p-2 bg-gray-700 rounded-lg text-sm placeholder-gray-400 focus:outline-none"
+              />
+              <button
+                className="p-3 bg-green-600 rounded-lg text-2xl hover:bg-green-500 transition"
+                onClick={handleAddMetadata}
+              >
+                <Plus size={23} />
+              </button>
+            </div>
+          )}
 
           {isFavorite && (
             <div className="flex w-full gap-2 px-1">
@@ -563,14 +565,14 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
                 className="flex-1 p-2 bg-gray-700 rounded-lg text-sm placeholder-gray-400 focus:outline-none"
                 />
               <button
-                className="p-3 bg-blue-600 rounded-lg text-2xl hover:bg-blue-500 transition"
-                onClick={handleAddTrack}
+                className="p-3 bg-green-600 rounded-lg text-2xl hover:bg-green-500 transition"
+                onClick={() => handleAddToFavorite()}
               >
                 <Plus size={23} />
               </button>
             </div>
           )}
-          {(currentPlaylistName !== "Favorite" && currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace") && (
+          {(currentPlaylistName !== "Favorite" && currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace" && currentPlaylistName !== "All") && (
             <div className="flex w-full gap-2 px-1 mt-2">
               <input
                 type="text"
@@ -656,7 +658,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
               className="slider absolute top-0 left-0 w-full h-full cursor-pointer"
             />
           </div>
-
+          
           <div className="w-full flex justify-between text-xs text-gray-400 mt-1">
             <span>{formatTime(progress)}</span>
             <span>{formatTime(duration)}</span>
@@ -688,7 +690,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         duration={duration}
         handleSeek={handleSeek}
         formatTime={formatTime}
-      />
+        />
     </div>
   );
 }

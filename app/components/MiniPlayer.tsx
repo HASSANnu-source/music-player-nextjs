@@ -89,7 +89,7 @@ export default function MiniPlayer({
         <ChevronDown size={22} />
       </button>
 
-      <div className="absolute top-5 text-center">
+      <div className="absolute sm:static top-5 text-center">
         <p className="font-semibold text-sm text-gray-300">
           PLAYING FROM
         </p>
@@ -101,7 +101,7 @@ export default function MiniPlayer({
       <img
         src={metadata.picture}
         alt="cover"
-        className="w-60 h-60 rounded-2xl object-cover transition-transform duration-500"
+        className="w-60 h-60 object-cover transition-transform duration-500"
       />
 
       <div className="text-center">

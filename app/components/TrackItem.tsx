@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Heart } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface TrackItemProps {
+  url: string;
   title: string;
   artist: string;
   picture?: string;
@@ -16,10 +17,12 @@ interface TrackItemProps {
   currentPlaylistName: string;
   onClick: () => void;
   onRemove?: () => void;
+  AddToFavorite: (url: string) => void;
   onCopy?: () => void;
 }
 
 export default function TrackItem({
+  url,
   title,
   artist,
   picture,
@@ -27,6 +30,7 @@ export default function TrackItem({
   currentPlaylistName,
   onClick,
   onRemove,
+  AddToFavorite,
   onCopy,
 }: TrackItemProps) {
   return (
@@ -57,17 +61,6 @@ export default function TrackItem({
           </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36 bg-gray-800 border-0">
-          {(currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace") && (
-            <DropdownMenuItem
-              className="text-red-400 focus:bg-gray-700 focus:text-red-200"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove?.();
-              }}
-            >
-              Remove
-            </DropdownMenuItem>
-          )}
           <DropdownMenuItem
             className="text-blue-400 focus:bg-gray-700 focus:text-blue-200"
             onClick={(e) => {
@@ -77,6 +70,29 @@ export default function TrackItem({
           >
             Copy Link
           </DropdownMenuItem>
+            {(currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace") && (
+              <DropdownMenuItem
+                className="text-red-400 focus:bg-gray-700 focus:text-red-200"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove?.();
+                }}
+              >
+                Remove
+              </DropdownMenuItem>
+            )}
+          {(currentPlaylistName !== "Favorite") && (
+            <DropdownMenuItem
+              className="text-gray-300 focus:bg-gray-700 focus:text-gray-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                AddToFavorite(url);
+              }}
+            >
+              <Heart />
+              Add to favorite
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
