@@ -17,10 +17,10 @@ interface TrackItemProps {
   currentPlaylistName: string;
   onClick: () => void;
   onRemove?: () => void;
-  AddToFavorite: (url: string) => void;
-  RemoveFromFavorite: (url: string) => void;
+  AddToFavorite: () => void;
+  RemoveFromFavorite: () => void;
   onCopy?: () => void;
-  favoritePlaylist: string[]
+  isFavorite: boolean;
 }
 
 export default function TrackItem({
@@ -35,10 +35,8 @@ export default function TrackItem({
   AddToFavorite,
   RemoveFromFavorite,
   onCopy,
-  favoritePlaylist,
+  isFavorite,
 }: TrackItemProps) {
-  const isFavorite = favoritePlaylist.includes(url)
-
   return (
     <div
       className={`p-2 rounded-lg flex items-center gap-2 justify-between cursor-pointer ${isActive
@@ -81,7 +79,7 @@ export default function TrackItem({
             className="text-gray-300 focus:bg-gray-700 focus:text-gray-100"
             onClick={(e) => {
               e.stopPropagation();
-              isFavorite ? RemoveFromFavorite(url) : AddToFavorite(url);
+              isFavorite ? RemoveFromFavorite() : AddToFavorite();
             }}
           >
             <Heart fill={`${isFavorite ? "red" : "none"}`} strokeWidth={`${isFavorite ? "0" : "2"}`} />

@@ -338,14 +338,45 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
       const parsed = JSON.parse(saved);
       const playlist = parsed.playlists?.find((p: any) => p.name === playlistName);
       if (!playlist) return;
+      const removedTrack = playlist.tracks[idx];
       playlist.tracks.splice(idx, 1);
       parsed.playlists = parsed.playlists.map((p: any) =>
         p.name === playlistName ? playlist : p
       );
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      setCurrentPlaylist(playlist.tracks);
+
+      // به‌روزرسانی currentPlaylist
+      setCurrentPlaylist(prev => {
+        const updated = prev.filter((_, i) => i !== idx);
+
+        // اگر آهنگ حذف‌شده در حال پخش بود
+        if (currentTrackUrl === removedTrack) {
+          if (updated.length === 0) {
+            // هیچ آهنگی نمونده
+            setCurrentTrackUrl("");
+            setIsPlaying(false);
+          } else {
+            let newIndex;
+            if (idx >= updated.length) {
+              // حذف آخرین آهنگ → برو قبلی
+              newIndex = updated.length - 1;
+            } else {
+              // در غیر این صورت → برو بعدی
+              newIndex = idx;
+            }
+
+            const nextTrack = updated[newIndex];
+            setCurrentIndex(newIndex);
+            setCurrentTrackUrl(nextTrack);
+            setIsPlaying(true); // بلافاصله پلی کن
+          }
+        }
+
+        return updated;
+      });
+
     } catch (e) {
-      console.error("Failed to remove track from playlist:", e);
+      console.error("❌ Failed to remove track from playlist:", e);
     }
   };
 
@@ -371,38 +402,54 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     }
   };
 
-  const handleRemoveFromFavorite = (idx: number) => {
-    if (!isFavorite) return;
-    const updated = favoritePlaylist.filter((_, i) => i !== idx);
-    setfavoritePlaylist(updated);
-    setCurrentPlaylist(updated);
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const parsed = saved ? JSON.parse(saved) : {};
-      parsed.favoritePlaylist = updated;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-    } catch (e) {
-      console.error("Failed to remove track from favorite:", e);
-    }
-  };
+  const handleRemoveFromFavorite = useCallback((url: string) => {
+    setfavoritePlaylist(prev => {
+      const index = prev.indexOf(url);
+      if (index === -1) return prev;
 
-  const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
-    const updated = favoritePlaylist.filter(track => track !== url);
-    setfavoritePlaylist(updated);
+      const updated = prev.filter(track => track !== url);
 
-    if (isFavorite) {
-      setCurrentPlaylist(updated);
-    }
+      // اگر آهنگ در حال پخش حذف شد
+      if (currentTrackUrl === url && isFavorite) {
+        if (updated.length === 0) {
+          // لیست خالی شد
+          setCurrentTrackUrl("");
+          setIsPlaying(false);
+        } else {
+          let newIndex;
+          if (index >= updated.length) {
+            // آخرین آهنگ بود → برو قبلی
+            newIndex = updated.length - 1;
+          } else {
+            // در غیر این صورت → برو بعدی
+            newIndex = index;
+          }
 
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      const parsed = saved ? JSON.parse(saved) : {};
-      parsed.favoritePlaylist = updated;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-    } catch (e) {
-      console.error("Failed to remove track from favorite:", e);
-    }
-  }, [favoritePlaylist, isFavorite]);
+          const nextTrack = updated[newIndex];
+          setCurrentIndex(newIndex);
+          setCurrentTrackUrl(nextTrack);
+          setIsPlaying(true);
+        }
+      }
+
+      // اگر کاربر داخل Favorite بود، پلی‌لیست فعلی رو هم آپدیت کن
+      if (isFavorite) {
+        setCurrentPlaylist(updated);
+      }
+
+      // ذخیره در localStorage
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const parsed = saved ? JSON.parse(saved) : {};
+        parsed.favoritePlaylist = updated;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+      } catch (e) {
+        console.error("❌ Failed to remove track from favorite:", e);
+      }
+
+      return updated;
+    });
+  }, [isFavorite , currentTrackUrl]);
 
   const handleAddMetadata = () => {
     const url = newTrack.trim();
@@ -425,15 +472,46 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
 
   const handleRemoveMetadata = (url: string) => {
     try {
-      // حذف از state
+      const isCurrent = currentTrackUrl === url;
+
+      // حذف از allMetadata
       setAllMetadata(prev => {
         const newMetadata = { ...prev };
         delete newMetadata[url];
         return newMetadata;
       });
 
-      // حذف از currentPlaylist و Favorite
-      setCurrentPlaylist(prev => prev.filter(t => t !== url));
+      // به‌روزرسانی currentPlaylist و favorite
+      setCurrentPlaylist(prev => {
+        const index = prev.indexOf(url);
+        const updated = prev.filter(t => t !== url);
+
+        // اگر آهنگ در حال پخش بود
+        if (isCurrent) {
+          if (updated.length === 0) {
+            // هیچ آهنگی باقی نمونده
+            setCurrentTrackUrl("");
+            setIsPlaying(false);
+          } else {
+            let newIndex;
+            if (index >= updated.length) {
+              // آخرین آهنگ حذف شده → برو قبلی
+              newIndex = updated.length - 1;
+            } else {
+              // در غیر این صورت → برو بعدی
+              newIndex = index;
+            }
+
+            const nextTrack = updated[newIndex];
+            setCurrentIndex(newIndex);
+            setCurrentTrackUrl(nextTrack);
+            setIsPlaying(true); // 🔥 فوراً پخش کن
+          }
+        }
+
+        return updated;
+      });
+
       setfavoritePlaylist(prev => prev.filter(t => t !== url));
 
       // حذف از localStorage
@@ -441,23 +519,14 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
       if (saved) {
         const parsed = JSON.parse(saved);
 
-        // حذف از metadata
-        if (parsed.metadata && parsed.metadata[url]) {
-          delete parsed.metadata[url];
-        }
-
-        // حذف از favoritePlaylist
-        if (Array.isArray(parsed.favoritePlaylist)) {
+        if (parsed.metadata && parsed.metadata[url]) delete parsed.metadata[url];
+        if (Array.isArray(parsed.favoritePlaylist))
           parsed.favoritePlaylist = parsed.favoritePlaylist.filter((t: string) => t !== url);
-        }
-
-        // حذف از تمام پلی‌لیست‌ها
-        if (Array.isArray(parsed.playlists)) {
+        if (Array.isArray(parsed.playlists))
           parsed.playlists = parsed.playlists.map((pl: any) => ({
             ...pl,
             tracks: pl.tracks.filter((t: string) => t !== url),
           }));
-        }
 
         // ذخیره تغییرات
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
@@ -542,18 +611,14 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
                   setCurrentTrackUrl(track);
                 }}
                 currentPlaylistName={currentPlaylistName}
-                onRemove={
-                  isFavorite
-                    ? () => handleRemoveFromFavorite(idx)
-                    : (isAll
-                      ? () => handleRemoveMetadata(track)
-                      : () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
-                    )
+                onRemove={isAll
+                  ? () => handleRemoveMetadata(track)
+                  : () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
                 }
                 onCopy={() => handleCopy(track)}
-                AddToFavorite={(track) => handleAddToFavorite(track)}
-                RemoveFromFavorite={handleRemoveFromFavoriteByUrl}
-                favoritePlaylist={favoritePlaylist}
+                AddToFavorite={() => handleAddToFavorite(track)}
+                RemoveFromFavorite={() => handleRemoveFromFavorite(track)}
+                isFavorite={favoritePlaylist.includes(track)}
               />
             ))}
           </div>
