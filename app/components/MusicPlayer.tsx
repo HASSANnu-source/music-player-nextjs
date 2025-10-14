@@ -395,6 +395,26 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     }
   };
 
+  // تابع جدید برای حذف بر اساس URL
+const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
+  const updated = favoritePlaylist.filter(track => track !== url);
+  setfavoritePlaylist(updated);
+  
+  // اگر در حال نمایش پلی‌لیست Favorite هستیم، لیست رو آپدیت کن
+  if (isFavorite) {
+    setCurrentPlaylist(updated);
+  }
+  
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : {};
+    parsed.favoritePlaylist = updated;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+  } catch (e) {
+    console.error("Failed to remove track from favorite:", e);
+  }
+}, [favoritePlaylist, isFavorite]);
+
   const handleAddMetadata = () => {
     const url = newTrack.trim();
     if (!url) return;
@@ -512,29 +532,32 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         <div className="w-full space-y-3">
           <div className="w-full rounded-xl p-1 space-y-1">
             {currentPlaylist.map((track, idx) => (
-              <TrackItem
-                url={track}
-                key={idx}
-                title={allMetadata[track]?.title ?? getFileName(track)}
-                artist={allMetadata[track]?.artist ?? "Unknown Artist"}
-                picture={allMetadata[track]?.picture}
-                isActive={idx === activeIndex}
-                onClick={() => {
-                  setCurrentIndex(idx);
-                  setCurrentTrackUrl(track);
-                }}
-                currentPlaylistName={currentPlaylistName}
-                onRemove={
-                  isFavorite
-                    ? () => handleRemoveFromFavorite(idx)
-                    : (isAll
-                      ? () => handleRemoveMetadata(track)
-                      : () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
-                    )
-                }
-                onCopy={() => handleCopy(track)}
-                AddToFavorite={(track) => handleAddToFavorite(track)}
-                />
+              // در قسمت رندر TrackItem:
+<TrackItem
+  url={track}
+  key={idx}
+  title={allMetadata[track]?.title ?? getFileName(track)}
+  artist={allMetadata[track]?.artist ?? "Unknown Artist"}
+  picture={allMetadata[track]?.picture}
+  isActive={idx === activeIndex}
+  onClick={() => {
+    setCurrentIndex(idx);
+    setCurrentTrackUrl(track);
+  }}
+  currentPlaylistName={currentPlaylistName}
+  onRemove={
+    isFavorite
+      ? () => handleRemoveFromFavorite(idx)
+      : (isAll
+        ? () => handleRemoveMetadata(track)
+        : () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
+      )
+  }
+  onCopy={() => handleCopy(track)}
+  AddToFavorite={(track) => handleAddToFavorite(track)}
+  RemoveFromFavorite={handleRemoveFromFavoriteByUrl} // اضافه شده
+  favoritePlaylist={favoritePlaylist}
+/>
             ))}
           </div>
           {isAll && (

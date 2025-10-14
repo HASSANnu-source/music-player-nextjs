@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreVertical, Heart } from "lucide-react";
+import { MoreVertical, Heart, Copy, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,7 +18,9 @@ interface TrackItemProps {
   onClick: () => void;
   onRemove?: () => void;
   AddToFavorite: (url: string) => void;
+  RemoveFromFavorite: (url: string) => void; // اضافه شده
   onCopy?: () => void;
+  favoritePlaylist: string[]
 }
 
 export default function TrackItem({
@@ -31,8 +33,12 @@ export default function TrackItem({
   onClick,
   onRemove,
   AddToFavorite,
+  RemoveFromFavorite, // اضافه شده
   onCopy,
+  favoritePlaylist,
 }: TrackItemProps) {
+  const isFavorite = favoritePlaylist.includes(url)
+  
   return (
     <div
       className={`p-2 rounded-lg flex items-center gap-2 justify-between cursor-pointer ${
@@ -60,7 +66,7 @@ export default function TrackItem({
             <MoreVertical size={18} />
           </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36 bg-gray-800 border-0">
+        <DropdownMenuContent align="end" className="bg-gray-800 border-0">
           <DropdownMenuItem
             className="text-blue-400 focus:bg-gray-700 focus:text-blue-200"
             onClick={(e) => {
@@ -68,29 +74,31 @@ export default function TrackItem({
               onCopy?.();
             }}
           >
+            <Copy />
             Copy Link
           </DropdownMenuItem>
-            {(currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace") && (
-              <DropdownMenuItem
-                className="text-red-400 focus:bg-gray-700 focus:text-red-200"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove?.();
-                }}
-              >
-                Remove
-              </DropdownMenuItem>
-            )}
-          {(currentPlaylistName !== "Favorite") && (
+
+          <DropdownMenuItem
+            className="text-gray-300 focus:bg-gray-700 focus:text-gray-100"
+            onClick={(e) => {
+              e.stopPropagation();
+              isFavorite ? RemoveFromFavorite(url) : AddToFavorite(url);
+            }}
+          >
+            <Heart fill={`${isFavorite ? "red" : "none"}`} strokeWidth={`${isFavorite ? "0" : "2"}`} />
+            {isFavorite ? "Remove from favorite" : "Add to favorite"}
+          </DropdownMenuItem>
+
+          {(currentPlaylistName !== "Pop" && currentPlaylistName !== "Peace" && currentPlaylistName !== "Favorite") && (
             <DropdownMenuItem
-              className="text-gray-300 focus:bg-gray-700 focus:text-gray-100"
+              className="text-red-400 focus:bg-gray-700 focus:text-red-200"
               onClick={(e) => {
                 e.stopPropagation();
-                AddToFavorite(url);
+                onRemove?.();
               }}
             >
-              <Heart />
-              Add to favorite
+              <Trash2 />
+              Remove
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
