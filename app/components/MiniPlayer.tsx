@@ -97,7 +97,7 @@ export default function MiniPlayer({
           {selectedPlaylist}
         </p>
       </div>
-      
+
       <img
         src={metadata.picture}
         alt="cover"

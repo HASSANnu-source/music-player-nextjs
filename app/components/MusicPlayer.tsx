@@ -131,12 +131,6 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     const audio = audioRef.current;
     if (!audio) return;
 
-    // اگر همان آهنگ قبلی باشد، کاری نکن
-    if (audio.src && currentTrack && audio.src.endsWith(encodeURIComponent(currentTrack)) === false) {
-      // این چک ساده فقط برای جلوگیری از یک بار لود غیرضروری است؛
-      // برای اطمینان، به شکل امن‌تر audio.src را با currentTrack مقایسه می‌کنیم:
-    }
-
     // set/update source فقط وقتی currentTrack وجود داشته باشه و با src فعلی متفاوت باشه
     const src = currentTrack ?? "";
     const currentAudioSrc = audio.src || "";
@@ -158,7 +152,6 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
 
       audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
-    // در غیر این صورت هیچ کاری نمیکند (پخش ادامه پیدا می‌کند)
   }, [currentTrack]);
 
   useEffect(() => {
@@ -275,21 +268,19 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         window.jsmediatags.read(blob as any, {
           onSuccess: (tag: any) => {
             let picDataUrl: string | undefined;
-            try {
-              const picture = tag.tags.picture;
-              if (picture?.data) {
-                const u8 = new Uint8Array(picture.data);
-                const CHUNK = 0x8000;
-                let index = 0;
-                let result = "";
-                while (index < u8.length) {
-                  const slice = u8.subarray(index, Math.min(index + CHUNK, u8.length));
-                  result += String.fromCharCode.apply(null, Array.from(slice));
-                  index += CHUNK;
-                }
-                picDataUrl = `data:${picture.format};base64,${btoa(result)}`;
+            const picture = tag.tags.picture;
+            if (picture?.data) {
+              const u8 = new Uint8Array(picture.data);
+              const CHUNK = 0x8000;
+              let index = 0;
+              let result = "";
+              while (index < u8.length) {
+                const slice = u8.subarray(index, Math.min(index + CHUNK, u8.length));
+                result += String.fromCharCode.apply(null, Array.from(slice));
+                index += CHUNK;
               }
-            } catch { }
+              picDataUrl = `data:${picture.format};base64,${btoa(result)}`;
+            }
             const title = tag.tags.title || getFileName(url);
             const artist = tag.tags.artist || "Unknown Artist";
             if (mounted.current) {
@@ -314,7 +305,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
 
   useEffect(() => {
     currentPlaylist.forEach((url) => fetchMetadata(url));
-  }, [currentPlaylist, fetchMetadata]);
+  }, [currentPlaylist]);
 
   const handleAddTrackToPlaylist = (trackUrl: string, playlistName: string) => {
     if (!trackUrl) return;
@@ -367,17 +358,17 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     setCurrentPlaylist(updated);
     setNewTrack("");
     fetchMetadata(url);
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const parsed = saved ? JSON.parse(saved) : {};
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
 
-        parsed.favoritePlaylist = updated;
-        parsed.metadata = allMetadata;
+      parsed.favoritePlaylist = updated;
+      parsed.metadata = allMetadata;
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      } catch(e) {
-        console.log(e)
-      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch (e) {
+      console.log(e)
+    }
   };
 
   const handleRemoveFromFavorite = (idx: number) => {
@@ -395,77 +386,84 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
     }
   };
 
-  // تابع جدید برای حذف بر اساس URL
-const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
-  const updated = favoritePlaylist.filter(track => track !== url);
-  setfavoritePlaylist(updated);
-  
-  // اگر در حال نمایش پلی‌لیست Favorite هستیم، لیست رو آپدیت کن
-  if (isFavorite) {
-    setCurrentPlaylist(updated);
-  }
-  
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed = saved ? JSON.parse(saved) : {};
-    parsed.favoritePlaylist = updated;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-  } catch (e) {
-    console.error("Failed to remove track from favorite:", e);
-  }
-}, [favoritePlaylist, isFavorite]);
+  const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
+    const updated = favoritePlaylist.filter(track => track !== url);
+    setfavoritePlaylist(updated);
+
+    if (isFavorite) {
+      setCurrentPlaylist(updated);
+    }
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
+      parsed.favoritePlaylist = updated;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch (e) {
+      console.error("Failed to remove track from favorite:", e);
+    }
+  }, [favoritePlaylist, isFavorite]);
 
   const handleAddMetadata = () => {
     const url = newTrack.trim();
     if (!url) return;
     setNewTrack("");
     fetchMetadata(url);
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const parsed = saved ? JSON.parse(saved) : {};
-        parsed.metadata = allMetadata;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-      } catch(e) {
-        console.log("Failed to add metadata:", e)
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      const parsed = saved ? JSON.parse(saved) : {};
+      parsed.metadata = { ...(parsed.metadata || {}), ...allMetadata };
+      if (!parsed.metadata[url]) {
+        parsed.metadata[url] = { title: getFileName(url) || url, artist: "Unknown Artist" };
       }
+      setCurrentPlaylist((prev) => (prev.includes(url) ? prev : [...prev, url]));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    } catch (e) {
+      console.log("Failed to add metadata:", e)
+    }
   };
 
   const handleRemoveMetadata = (url: string) => {
     try {
-      // 1. حذف از state
+      // حذف از state
       setAllMetadata(prev => {
         const newMetadata = { ...prev };
         delete newMetadata[url];
         return newMetadata;
       });
 
-      // 2. حذف از localStorage
+      // حذف از currentPlaylist و Favorite
+      setCurrentPlaylist(prev => prev.filter(t => t !== url));
+      setfavoritePlaylist(prev => prev.filter(t => t !== url));
+
+      // حذف از localStorage
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        
+
         // حذف از metadata
         if (parsed.metadata && parsed.metadata[url]) {
           delete parsed.metadata[url];
         }
 
-        // حذف از favoritePlaylist اگر وجود دارد
+        // حذف از favoritePlaylist
         if (Array.isArray(parsed.favoritePlaylist)) {
-          parsed.favoritePlaylist = parsed.favoritePlaylist.filter((track: string) => track !== url);
+          parsed.favoritePlaylist = parsed.favoritePlaylist.filter((t: string) => t !== url);
         }
 
-        // حذف از سایر پلی‌لیست‌ها
-        if (Array.isArray(parsed.favoritePlaylist)) {
-          const newFav = parsed.favoritePlaylist.filter((track: string) => track !== url);
-          parsed.favoritePlaylist = newFav;
-          setfavoritePlaylist(newFav);
+        // حذف از تمام پلی‌لیست‌ها
+        if (Array.isArray(parsed.playlists)) {
+          parsed.playlists = parsed.playlists.map((pl: any) => ({
+            ...pl,
+            tracks: pl.tracks.filter((t: string) => t !== url),
+          }));
         }
 
+        // ذخیره تغییرات
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       }
-
       console.log("✅ Metadata removed for:", url);
-    } catch(e) {
+    } catch (e) {
       console.log("❌ Failed to remove metadata:", e);
     }
   };
@@ -492,10 +490,10 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
       parsed.metadata = allMetadata;
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-    } catch(e) {
+    } catch (e) {
       console.log(e)
     }
-  }, [favoritePlaylist, allMetadata, isFavorite]);
+  }, [favoritePlaylist, allMetadata]);
 
   // برای رندر UI: ایندکسِ آهنگ فعال در currentPlaylist (اگر آهنگ فعلی در پلی‌لیست باشه)
   const activeIndex = currentTrackUrl ? currentPlaylist.indexOf(currentTrackUrl) : (currentIndex >= 0 ? currentIndex : -1);
@@ -503,15 +501,15 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
   return (
     <div className="bg-gray-800 h-full flex flex-col w-full justify-center items-center">
       <div className="relative w-full h-full overflow-hidden p-6 z-20 mb-20">
-      {/* background blur */}
-      <div
-        className="absolute -inset-5 -z-10 h-90 brightness-50 blur-2xl bg-center bg-cover"
-        style={{
-          backgroundImage: allMetadata[currentTrack ?? ""]?.picture
-            ? `url(${allMetadata[firstTrack ?? ""]?.picture})`
-            : "none",
-        }}
-      />
+        {/* background blur */}
+        <div
+          className="absolute -inset-5 -z-10 h-90 brightness-50 blur-2xl bg-center bg-cover"
+          style={{
+            backgroundImage: allMetadata[currentTrack ?? ""]?.picture
+              ? `url(${allMetadata[firstTrack ?? ""]?.picture})`
+              : "none",
+          }}
+        />
         <div className="flex items-end gap-5 mb-5">
           <img
             src={allMetadata[firstTrack ?? ""]?.picture ?? "/default-cover.png"}
@@ -528,36 +526,35 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
             </p>
           </div>
         </div>
-        
+
         <div className="w-full space-y-3">
           <div className="w-full rounded-xl p-1 space-y-1">
             {currentPlaylist.map((track, idx) => (
-              // در قسمت رندر TrackItem:
-<TrackItem
-  url={track}
-  key={idx}
-  title={allMetadata[track]?.title ?? getFileName(track)}
-  artist={allMetadata[track]?.artist ?? "Unknown Artist"}
-  picture={allMetadata[track]?.picture}
-  isActive={idx === activeIndex}
-  onClick={() => {
-    setCurrentIndex(idx);
-    setCurrentTrackUrl(track);
-  }}
-  currentPlaylistName={currentPlaylistName}
-  onRemove={
-    isFavorite
-      ? () => handleRemoveFromFavorite(idx)
-      : (isAll
-        ? () => handleRemoveMetadata(track)
-        : () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
-      )
-  }
-  onCopy={() => handleCopy(track)}
-  AddToFavorite={(track) => handleAddToFavorite(track)}
-  RemoveFromFavorite={handleRemoveFromFavoriteByUrl} // اضافه شده
-  favoritePlaylist={favoritePlaylist}
-/>
+              <TrackItem
+                url={track}
+                key={idx}
+                title={allMetadata[track]?.title ?? getFileName(track)}
+                artist={allMetadata[track]?.artist ?? "Unknown Artist"}
+                picture={allMetadata[track]?.picture}
+                isActive={idx === activeIndex}
+                onClick={() => {
+                  setCurrentIndex(idx);
+                  setCurrentTrackUrl(track);
+                }}
+                currentPlaylistName={currentPlaylistName}
+                onRemove={
+                  isFavorite
+                    ? () => handleRemoveFromFavorite(idx)
+                    : (isAll
+                      ? () => handleRemoveMetadata(track)
+                      : () => handleRemoveTrackFromPlaylist(idx, currentPlaylistName)
+                    )
+                }
+                onCopy={() => handleCopy(track)}
+                AddToFavorite={(track) => handleAddToFavorite(track)}
+                RemoveFromFavorite={handleRemoveFromFavoriteByUrl}
+                favoritePlaylist={favoritePlaylist}
+              />
             ))}
           </div>
           {isAll && (
@@ -586,7 +583,7 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
                 value={newTrack}
                 onChange={(e) => setNewTrack(e.target.value)}
                 className="flex-1 p-2 bg-gray-700 rounded-lg text-sm placeholder-gray-400 focus:outline-none"
-                />
+              />
               <button
                 className="p-3 bg-green-600 rounded-lg text-2xl hover:bg-green-500 transition"
                 onClick={() => handleAddToFavorite()}
@@ -619,7 +616,7 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
       </div>
       <audio ref={audioRef} onEnded={handleNext} />
       <div className="fixed sm:sticky bottom-4 w-95/100 z-20 rounded-2xl bg-gray-900 flex flex-wrap sm:flex-nowrap justify-between sm:justify-center items-center gap-4 sm:gap-6">
-        <div 
+        <div
           className="flex items-center pl-2.5 py-2 gap-3 flex-1 min-w-0 sm:min-w-1/4 overflow-hidden hover:bg-gray-700 rounded-l-xl transition"
           onClick={() => setIsMiniOpen(true)}
         >
@@ -665,12 +662,12 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
             <div
               className="absolute top-0 left-0 h-full rounded-lg bg-gray-500"
               style={{ width: `${buffered}%` }}
-              />
+            />
             {/* بخش پخش‌شده */}
             <div
               className="absolute top-0 left-0 h-full rounded-lg bg-green-500"
               style={{ width: `${(progress / duration) * 100}%` }}
-              />
+            />
             {/* اسلایدر */}
             <input
               type="range"
@@ -681,7 +678,7 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
               className="slider absolute top-0 left-0 w-full h-full cursor-pointer"
             />
           </div>
-          
+
           <div className="w-full flex justify-between text-xs text-gray-400 mt-1">
             <span>{formatTime(progress)}</span>
             <span>{formatTime(duration)}</span>
@@ -713,7 +710,7 @@ const handleRemoveFromFavoriteByUrl = useCallback((url: string) => {
         duration={duration}
         handleSeek={handleSeek}
         formatTime={formatTime}
-        />
+      />
     </div>
   );
 }

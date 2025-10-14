@@ -22,17 +22,15 @@ export default function PlayerLayout({ playlists }: { playlists: Playlist[] }) {
         onClick={() => setIsOpen(!isOpen)}
       >
         <div className="relative w-6 h-6">
-  <MoreVertical
-    className={`absolute transition-all duration-300 transform ${
-      isOpen ? "opacity-0 scale-75 rotate-90" : "opacity-100 scale-100 rotate-0"
-    }`}
-  />
-  <X
-    className={`absolute transition-all duration-300 transform ${
-      isOpen ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 -rotate-90"
-    }`}
-  />
-</div>
+          <MoreVertical
+            className={`absolute transition-all duration-300 transform ${isOpen ? "opacity-0 scale-75 rotate-90" : "opacity-100 scale-100 rotate-0"
+              }`}
+          />
+          <X
+            className={`absolute transition-all duration-300 transform ${isOpen ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 -rotate-90"
+              }`}
+          />
+        </div>
 
       </button>
 

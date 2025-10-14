@@ -34,7 +34,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.playlists) setAllPlaylists([...playlists , ...parsed.playlists]);
+      if (parsed.playlists) setAllPlaylists([...playlists, ...parsed.playlists]);
     }
   }, [allMetadata]);
 
@@ -117,9 +117,8 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
         >
           <span>Playlists</span>
           <ChevronDown
-            className={`transform transition-transform duration-300 ${
-              open ? "rotate-180" : ""
-            }`}
+            className={`transform transition-transform duration-300 ${open ? "rotate-180" : ""
+              }`}
           />
         </button>
 
@@ -128,9 +127,8 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
             <button
               key="All"
               onClick={() => onSelect("All")}
-              className={`flex items-center gap-3 w-full p-2 rounded-lg transition ${
-                selected === "All" ? "bg-green-700" : "hover:bg-gray-800"
-              }`}
+              className={`flex items-center gap-3 w-full p-2 rounded-lg transition ${selected === "All" ? "bg-green-700" : "hover:bg-gray-800"
+                }`}
             >
               <img
                 src={
@@ -145,9 +143,8 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
             <button
               key="Favorite"
               onClick={() => onSelect("Favorite")}
-              className={`flex items-center gap-3 w-full p-2 rounded-lg transition ${
-                selected === "Favorite" ? "bg-green-700" : "hover:bg-gray-800"
-              }`}
+              className={`flex items-center gap-3 w-full p-2 rounded-lg transition ${selected === "Favorite" ? "bg-green-700" : "hover:bg-gray-800"
+                }`}
             >
               <img
                 src={
@@ -164,9 +161,8 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
               <button
                 key={pl.name}
                 onClick={() => onSelect(pl.name)}
-                className={`flex items-center justify-between w-full p-2 rounded-lg transition ${
-                  selected === pl.name ? "bg-green-700" : "hover:bg-gray-800"
-                }`}
+                className={`flex items-center justify-between w-full p-2 rounded-lg transition ${selected === pl.name ? "bg-green-700" : "hover:bg-gray-800"
+                  }`}
               >
                 <div className="flex items-center justify-center gap-3">
                   <img

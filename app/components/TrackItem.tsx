@@ -18,7 +18,7 @@ interface TrackItemProps {
   onClick: () => void;
   onRemove?: () => void;
   AddToFavorite: (url: string) => void;
-  RemoveFromFavorite: (url: string) => void; // اضافه شده
+  RemoveFromFavorite: (url: string) => void;
   onCopy?: () => void;
   favoritePlaylist: string[]
 }
@@ -33,19 +33,18 @@ export default function TrackItem({
   onClick,
   onRemove,
   AddToFavorite,
-  RemoveFromFavorite, // اضافه شده
+  RemoveFromFavorite,
   onCopy,
   favoritePlaylist,
 }: TrackItemProps) {
   const isFavorite = favoritePlaylist.includes(url)
-  
+
   return (
     <div
-      className={`p-2 rounded-lg flex items-center gap-2 justify-between cursor-pointer ${
-        isActive
-          ? "bg-green-500"
-          : "bg-gray-700 text-gray-200 hover:bg-gray-600"
-      }`}
+      className={`p-2 rounded-lg flex items-center gap-2 justify-between cursor-pointer ${isActive
+        ? "bg-green-500"
+        : "bg-gray-700 text-gray-200 hover:bg-gray-600"
+        }`}
       onClick={onClick}
     >
       <div className="flex items-center w-full gap-2">
