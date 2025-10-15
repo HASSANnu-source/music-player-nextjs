@@ -581,7 +581,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
         />
         <div className="flex items-end gap-5 mb-5">
           <img
-            src={allMetadata[firstTrack ?? ""]?.picture ?? "/default-cover.png"}
+            src={allMetadata[firstTrack ?? ""]?.picture ?? "./default-cover.png"}
             alt="cover"
             className="w-35 h-35 rounded-lg object-cover"
           />
@@ -686,7 +686,7 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
           onClick={() => setIsMiniOpen(true)}
         >
           <img
-            src={allMetadata[currentTrack ?? ""]?.picture ?? "/default-cover.png"}
+            src={allMetadata[currentTrack ?? ""]?.picture ?? "./default-cover.png"}
             alt="cover"
             className="w-12 h-12 sm:w-15 sm:h-15 rounded-lg object-cover flex-shrink-0"
           />
