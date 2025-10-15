@@ -32,7 +32,7 @@ interface MusicPlayerProps {
 }
 
 export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayerProps) {
-  const proxy = "/api/proxy";
+  const proxy = "https://music-proxy.hassan-nu.workers.dev";
 
   const [favoritePlaylist, setfavoritePlaylist] = useState<string[]>([]);
   const [currentPlaylist, setCurrentPlaylist] = useState<string[]>(
