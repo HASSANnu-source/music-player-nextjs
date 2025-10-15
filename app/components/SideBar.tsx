@@ -133,7 +133,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
               <img
                 src={
                   (firstAllTrack && allMetadata?.[firstAllTrack]?.picture) ??
-                  "/default-cover.png"
+                  "./default-cover.png"
                 }
                 alt="All"
                 className="w-10 h-10 rounded-md object-cover"

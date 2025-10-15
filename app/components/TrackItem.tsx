@@ -47,7 +47,7 @@ export default function TrackItem({
     >
       <div className="flex items-center w-full gap-2">
         <img
-          src={picture ?? "/default-cover.png"}
+          src={picture ?? "./default-cover.png"}
           alt="cover"
           className="w-12 h-12 rounded-sm object-cover"
         />

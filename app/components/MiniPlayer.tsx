@@ -68,7 +68,6 @@ export default function MiniPlayer({
   const metadata = allMetadata[currentTrack] ?? {
     title: "Unknown Track",
     artist: "Unknown Artist",
-    picture: "/default-cover.png",
   };
 
   return (
@@ -99,7 +98,7 @@ export default function MiniPlayer({
       </div>
 
       <img
-        src={metadata.picture}
+        src={metadata.picture ?? "./default-cover.png"}
         alt="cover"
         className="w-60 h-60 object-cover transition-transform duration-500"
       />
