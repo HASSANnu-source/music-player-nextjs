@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface TrackItemProps {
-  url: string;
   title: string;
   artist: string;
   picture?: string;
@@ -24,7 +23,6 @@ interface TrackItemProps {
 }
 
 export default function TrackItem({
-  url,
   title,
   artist,
   picture,

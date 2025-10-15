@@ -149,7 +149,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
               <img
                 src={
                   (firstFavoriteTrack && allMetadata?.[firstFavoriteTrack]?.picture) ??
-                  "/default-cover.png"
+                  "./default-cover.png"
                 }
                 alt="Favorite"
                 className="w-10 h-10 rounded-md object-cover"
@@ -166,7 +166,7 @@ export const SideBar = ({ playlists, selected, onSelect }: SideBarProps) => {
               >
                 <div className="flex items-center justify-center gap-3">
                   <img
-                    src={allMetadata?.[pl.tracks?.[0]]?.picture ?? "/default-cover.png"}
+                    src={allMetadata?.[pl.tracks?.[0]]?.picture ?? "./default-cover.png"}
                     alt={pl.name}
                     className="w-10 h-10 rounded-md object-cover"
                   />

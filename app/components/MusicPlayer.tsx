@@ -600,7 +600,6 @@ export default function MusicPlayer({ playlists, selectedPlaylist }: MusicPlayer
           <div className="w-full rounded-xl p-1 space-y-1">
             {currentPlaylist.map((track, idx) => (
               <TrackItem
-                url={track}
                 key={idx}
                 title={allMetadata[track]?.title ?? getFileName(track)}
                 artist={allMetadata[track]?.artist ?? "Unknown Artist"}
