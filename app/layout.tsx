@@ -13,17 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://music-player-nextjs-phi.vercel.app"),
+  metadataBase: new URL("https://hassannu-source.github.io/music-player-nextjs"),
   title: "Music Player",
   description: "A simple music player with playlist",
   openGraph: {
     title: "Music Player",
     description: "A simple music player with playlist",
-    url: "https://music-player-nextjs-phi.vercel.app",
+    url: "https://hassannu-source.github.io/music-player-nextjs",
     siteName: "Music Player",
     images: [
       {
-        url: "/default-cover.png",
+        url: "./default-cover.png",
         width: 1200,
         height: 630,
         alt: "Music Player Cover",
